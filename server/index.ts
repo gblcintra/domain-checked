@@ -6,12 +6,15 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import dns from 'node:dns/promises'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-const dbPath = path.join(__dirname, 'data', 'app.db')
+const dataDir = path.join(__dirname, 'data')
+fs.mkdirSync(dataDir, { recursive: true })
+const dbPath = path.join(dataDir, 'app.db')
 const db = new Database(dbPath)
 const app = express()
 const port = Number(process.env.PORT || 3001)
