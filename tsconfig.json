@@ -12,5 +12,13 @@
     "resolveJsonModule": true,
     "isolatedModules": true
   },
-  "include": ["src", "server", "types.d.ts"]
+  "include": [
+    "src",
+    "server",
+    "types.d.ts",
+    "eslint.config.ts",
+    "postcss.config.ts",
+    "tailwind.config.ts",
+    "vite.config.ts"
+  ]
 }
