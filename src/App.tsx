@@ -82,11 +82,15 @@ function formatExpirationCountdown(value) {
 }
 
 function registrationDetails(domain) {
-  if (!domain.registration_expires_at) {
-    return 'Sem data disponível'
+  if (domain.registration_details) {
+    return domain.registration_details
   }
 
-  return domain.registration_error || 'Sem erros'
+  if (domain.registration_error) {
+    return domain.registration_error
+  }
+
+  return 'Sem detalhes disponíveis'
 }
 
 type RequestOptions = { token?: string; method?: string; body?: unknown }
@@ -280,9 +284,9 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">HTTP</dt><dd className="mt-2 text-lg text-white">{domain.last_http_code ?? '--'}</dd></div>
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Latência</dt><dd className="mt-2 text-lg text-white">{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Última checagem</dt><dd className="mt-2 text-sm text-white">{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
-                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Consulta RDAP</dt><dd className="mt-2 text-sm text-white">{formatDate(domain.registration_checked_at)}</dd></div>
+                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Consulta RDAP</dt><dd className="mt-2 text-sm text-white">{domain.registration_checked_at ? formatDate(domain.registration_checked_at) : 'Ainda não consultado'}</dd></div>
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Registrador</dt><dd className="mt-2 text-sm text-white">{domain.registrar || 'Não informado'}</dd></div>
-                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Detalhes do registro</dt><dd className="mt-2 text-sm text-white">{registrationDetails(domain)}</dd></div>
+                  <div className="rounded-2xl bg-slate-900 p-4 sm:col-span-2 xl:col-span-1"><dt className="text-xs uppercase tracking-wide text-slate-500">Detalhes do registro</dt><dd className="mt-2 text-sm leading-6 text-white">{registrationDetails(domain)}</dd></div>
                 </dl>
 
                 {domain.rdap_url && (
