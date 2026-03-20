@@ -89,12 +89,46 @@ function registrationAvailabilityClasses(domain) {
   }
 }
 
-function formatDate(value) {
+function parseRegistrationDate(value) {
   if (!value) {
+    return null
+  }
+
+  const normalizedValue = String(value).trim()
+  if (!normalizedValue) {
+    return null
+  }
+
+  const compactDateMatch = normalizedValue.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (compactDateMatch) {
+    const [, year, month, day] = compactDateMatch
+    return new Date(`${year}-${month}-${day}T12:00:00.000Z`)
+  }
+
+  const dateOnlyMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})(?:T00:00:00\.000Z)?$/)
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    return new Date(`${year}-${month}-${day}T12:00:00.000Z`)
+  }
+
+  const parsed = new Date(normalizedValue)
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function formatDate(value) {
+  const parsed = parseRegistrationDate(value)
+  if (!parsed) {
     return '--'
   }
 
-  return new Date(value).toLocaleString('pt-BR')
+  return parsed.toLocaleString('pt-BR', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 function formatExpirationCountdown(domain) {
@@ -110,7 +144,12 @@ function formatExpirationCountdown(domain) {
     return 'Aguardando a primeira consulta RDAP.'
   }
 
-  const diffMs = new Date(domain.registration_expires_at).getTime() - Date.now()
+  const expiresAt = parseRegistrationDate(domain.registration_expires_at)
+  if (!expiresAt) {
+    return 'A data de expiração retornada é inválida.'
+  }
+
+  const diffMs = expiresAt.getTime() - Date.now()
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {

@@ -113,7 +113,28 @@ function normalizeDate(value) {
     return null
   }
 
-  const parsed = new Date(value)
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString()
+  }
+
+  const normalizedValue = String(value).trim()
+  if (!normalizedValue) {
+    return null
+  }
+
+  const compactDateMatch = normalizedValue.match(/^(\d{4})(\d{2})(\d{2})$/)
+  if (compactDateMatch) {
+    const [, year, month, day] = compactDateMatch
+    return `${year}-${month}-${day}T12:00:00.000Z`
+  }
+
+  const dateOnlyMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    return `${year}-${month}-${day}T12:00:00.000Z`
+  }
+
+  const parsed = new Date(normalizedValue)
   if (Number.isNaN(parsed.getTime())) {
     return null
   }
