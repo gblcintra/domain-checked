@@ -24,6 +24,13 @@ const appUrl = process.env.APP_URL || 'http://localhost:5173'
 app.use(cors())
 app.use(express.json())
 
+function addColumnIfMissing(tableName, columnName, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${tableName})`).all()
+  if (!columns.some((column) => column.name === columnName)) {
+    db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${definition}`)
+  }
+}
+
 function bootstrap() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -56,10 +63,23 @@ function bootstrap() {
       last_http_code INTEGER,
       last_response_ms INTEGER,
       last_error TEXT,
+      registration_expires_at TEXT,
+      registration_checked_at TEXT,
+      registration_status TEXT,
+      registrar TEXT,
+      rdap_url TEXT,
+      registration_error TEXT,
       UNIQUE(user_id, hostname),
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
   `)
+
+  addColumnIfMissing('domains', 'registration_expires_at', 'registration_expires_at TEXT')
+  addColumnIfMissing('domains', 'registration_checked_at', 'registration_checked_at TEXT')
+  addColumnIfMissing('domains', 'registration_status', 'registration_status TEXT')
+  addColumnIfMissing('domains', 'registrar', 'registrar TEXT')
+  addColumnIfMissing('domains', 'rdap_url', 'rdap_url TEXT')
+  addColumnIfMissing('domains', 'registration_error', 'registration_error TEXT')
 }
 
 bootstrap()
@@ -82,34 +102,139 @@ function auth(req, res, next) {
   }
 }
 
+function normalizeDate(value) {
+  if (!value) {
+    return null
+  }
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) {
+    return null
+  }
+
+  return parsed.toISOString()
+}
+
+function getRegistrarName(entity) {
+  if (!entity) {
+    return null
+  }
+
+  const fullName = entity.vcardArray?.[1]?.find((item) => item[0] === 'fn')
+  if (fullName?.[3]) {
+    return fullName[3]
+  }
+
+  return entity.handle || null
+}
+
+async function lookupRegistration(domain) {
+  const rdapCandidates = [
+    `https://rdap.org/domain/${domain.hostname}`,
+    `https://rdap.verisign.com/com/v1/domain/${domain.hostname}`
+  ]
+
+  let lastError = 'Não foi possível consultar o RDAP.'
+
+  for (const candidate of rdapCandidates) {
+    try {
+      const response = await fetch(candidate, {
+        headers: { accept: 'application/rdap+json, application/json' },
+        signal: AbortSignal.timeout(8000)
+      })
+
+      if (!response.ok) {
+        lastError = `RDAP retornou HTTP ${response.status}.`
+        continue
+      }
+
+      const payload = await response.json()
+      const events = Array.isArray(payload.events) ? payload.events : []
+      const expirationEvent = events.find((item) => item.eventAction === 'expiration')
+      const lastChangedEvent = events.find((item) => item.eventAction === 'last changed')
+      const registrarEntity = Array.isArray(payload.entities)
+        ? payload.entities.find((item) => Array.isArray(item.roles) && item.roles.includes('registrar'))
+        : null
+      const expiresAt = normalizeDate(expirationEvent?.eventDate)
+      const checkedAt = new Date().toISOString()
+
+      let registrationStatus = 'unknown'
+      if (expiresAt) {
+        const diffMs = new Date(expiresAt).getTime() - Date.now()
+        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+        if (diffMs < 0) {
+          registrationStatus = 'expired'
+        } else if (diffDays <= 30) {
+          registrationStatus = 'expiring_soon'
+        } else {
+          registrationStatus = 'active'
+        }
+      }
+
+      return {
+        registrationExpiresAt: expiresAt,
+        registrationCheckedAt: checkedAt,
+        registrationStatus,
+        registrar: getRegistrarName(registrarEntity),
+        rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
+        registrationError: expiresAt ? null : 'RDAP sem data de expiração para este domínio.',
+        lastChangedAt: normalizeDate(lastChangedEvent?.eventDate)
+      }
+    } catch (error) {
+      lastError = error.message
+    }
+  }
+
+  return {
+    registrationExpiresAt: null,
+    registrationCheckedAt: new Date().toISOString(),
+    registrationStatus: 'unknown',
+    registrar: null,
+    rdapUrl: rdapCandidates[0],
+    registrationError: lastError,
+    lastChangedAt: null
+  }
+}
+
 async function checkDomain(domain) {
   const startedAt = Date.now()
   const url = `${domain.protocol}://${domain.hostname}`
 
-  try {
-    const lookup = await dns.lookup(domain.hostname)
-    const response = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: AbortSignal.timeout(8000),
-      headers: { 'user-agent': 'domain-checked-bot/1.0' }
-    })
+  const [registration, availability] = await Promise.all([
+    lookupRegistration(domain),
+    (async () => {
+      try {
+        const lookup = await dns.lookup(domain.hostname)
+        const response = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: AbortSignal.timeout(8000),
+          headers: { 'user-agent': 'domain-checked-bot/1.0' }
+        })
 
-    return {
-      status: response.ok ? 'online' : 'warning',
-      httpCode: response.status,
-      responseMs: Date.now() - startedAt,
-      error: null,
-      resolvedAddress: lookup.address
-    }
-  } catch (error) {
-    return {
-      status: 'offline',
-      httpCode: null,
-      responseMs: Date.now() - startedAt,
-      error: error.message,
-      resolvedAddress: null
-    }
+        return {
+          status: response.ok ? 'online' : 'warning',
+          httpCode: response.status,
+          responseMs: Date.now() - startedAt,
+          error: null,
+          resolvedAddress: lookup.address
+        }
+      } catch (error) {
+        return {
+          status: 'offline',
+          httpCode: null,
+          responseMs: Date.now() - startedAt,
+          error: error.message,
+          resolvedAddress: null
+        }
+      }
+    })()
+  ])
+
+  return {
+    ...availability,
+    ...registration
   }
 }
 
@@ -224,6 +349,36 @@ app.delete('/api/domains/:id', auth, (req, res) => {
   res.status(204).send()
 })
 
+function persistDomainCheck(domainId, result) {
+  db.prepare(`
+    UPDATE domains
+    SET last_checked_at = CURRENT_TIMESTAMP,
+        last_status = ?,
+        last_http_code = ?,
+        last_response_ms = ?,
+        last_error = ?,
+        registration_expires_at = ?,
+        registration_checked_at = ?,
+        registration_status = ?,
+        registrar = ?,
+        rdap_url = ?,
+        registration_error = ?
+    WHERE id = ?
+  `).run(
+    result.status,
+    result.httpCode,
+    result.responseMs,
+    result.error,
+    result.registrationExpiresAt,
+    result.registrationCheckedAt,
+    result.registrationStatus,
+    result.registrar,
+    result.rdapUrl,
+    result.registrationError,
+    domainId
+  )
+}
+
 app.post('/api/domains/:id/check', auth, async (req, res) => {
   const domain = db.prepare('SELECT * FROM domains WHERE id = ? AND user_id = ?').get(req.params.id, req.user.sub)
   if (!domain) {
@@ -231,15 +386,7 @@ app.post('/api/domains/:id/check', auth, async (req, res) => {
   }
 
   const result = await checkDomain(domain)
-  db.prepare(`
-    UPDATE domains
-    SET last_checked_at = CURRENT_TIMESTAMP,
-        last_status = ?,
-        last_http_code = ?,
-        last_response_ms = ?,
-        last_error = ?
-    WHERE id = ?
-  `).run(result.status, result.httpCode, result.responseMs, result.error, domain.id)
+  persistDomainCheck(domain.id, result)
 
   const updated = db.prepare('SELECT * FROM domains WHERE id = ?').get(domain.id)
   res.json({ domain: updated, diagnostics: result })
@@ -251,15 +398,7 @@ app.post('/api/domains/check-all', auth, async (req, res) => {
 
   for (const domain of domains) {
     const result = await checkDomain(domain)
-    db.prepare(`
-      UPDATE domains
-      SET last_checked_at = CURRENT_TIMESTAMP,
-          last_status = ?,
-          last_http_code = ?,
-          last_response_ms = ?,
-          last_error = ?
-      WHERE id = ?
-    `).run(result.status, result.httpCode, result.responseMs, result.error, domain.id)
+    persistDomainCheck(domain.id, result)
     updated.push(db.prepare('SELECT * FROM domains WHERE id = ?').get(domain.id))
   }
 
