@@ -128,11 +128,56 @@ function getRegistrarName(entity) {
   return entity.handle || null
 }
 
-async function lookupRegistration(domain) {
-  const rdapCandidates = [
-    `https://rdap.org/domain/${domain.hostname}`,
-    `https://rdap.verisign.com/com/v1/domain/${domain.hostname}`
+function getWhoisLookupUrl(hostname) {
+  return `https://www.whois.com/whois/${hostname}`
+}
+
+async function fetchJson(url, options = {}) {
+  const response = await fetch(url, {
+    ...options,
+    signal: options.signal || AbortSignal.timeout(8000)
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ao consultar ${url}`)
+  }
+
+  return response.json()
+}
+
+async function getRdapCandidates(hostname) {
+  const defaultCandidates = [
+    `https://rdap.org/domain/${hostname}`,
+    `https://rdap.verisign.com/com/v1/domain/${hostname}`
   ]
+
+  const labels = hostname.toLowerCase().split('.').filter(Boolean)
+  if (labels.length < 2) {
+    return defaultCandidates
+  }
+
+  try {
+    const bootstrap = await fetchJson('https://data.iana.org/rdap/dns.json')
+    const services = Array.isArray(bootstrap.services) ? bootstrap.services : []
+
+    for (let size = labels.length - 1; size > 0; size -= 1) {
+      const suffix = labels.slice(-size).join('.')
+      const match = services.find((entry) => Array.isArray(entry?.[0]) && entry[0].includes(suffix))
+      const urls = Array.isArray(match?.[1]) ? match[1] : []
+      if (urls.length > 0) {
+        return [...new Set(urls.map((baseUrl) => `${String(baseUrl).replace(/\/$/, '')}/domain/${hostname}`).concat(defaultCandidates))]
+      }
+    }
+  } catch {
+    return defaultCandidates
+  }
+
+  return defaultCandidates
+}
+
+async function lookupRegistration(domain) {
+  const rdapCandidates = await getRdapCandidates(domain.hostname)
+  const whoisLookupUrl = getWhoisLookupUrl(domain.hostname)
 
   let lastError = 'Não foi possível consultar o RDAP.'
 
@@ -178,7 +223,7 @@ async function lookupRegistration(domain) {
         registrationStatus,
         registrar: getRegistrarName(registrarEntity),
         rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
-        registrationError: expiresAt ? null : 'RDAP sem data de expiração para este domínio.',
+        registrationError: expiresAt ? null : `RDAP sem data de expiração. Consulte manualmente em ${whoisLookupUrl}`,
         lastChangedAt: normalizeDate(lastChangedEvent?.eventDate)
       }
     } catch (error) {
@@ -191,8 +236,8 @@ async function lookupRegistration(domain) {
     registrationCheckedAt: new Date().toISOString(),
     registrationStatus: 'unknown',
     registrar: null,
-    rdapUrl: rdapCandidates[0],
-    registrationError: lastError,
+    rdapUrl: whoisLookupUrl,
+    registrationError: `${lastError} Consulte manualmente em ${whoisLookupUrl}`,
     lastChangedAt: null
   }
 }
