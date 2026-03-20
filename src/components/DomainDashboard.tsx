@@ -113,8 +113,14 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                           {domain.last_status || 'pendente'}
                         </span>
                       </div>
-                      <p className={`mt-2 text-sm ${colors.pageText}`}>{domain.protocol}://{domain.hostname}</p>
-                      {domain.notes && <p className={`mt-2 text-sm ${colors.infoText}`}>{domain.notes}</p>}
+
+                      <p className={`mt-2 text-sm ${colors.pageText}`}>
+                        {domain.protocol}://{domain.hostname}
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>
+                          {registrationAvailabilityLabel(domain)}
+                        </span>
+                      </p>
+                      {domain.notes && <p className={`mt-2 text-sm ${colors.infoText}`}>Observações Internas: {domain.notes}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button type="button" onClick={() => onRefreshOne(domain.id)} className={`rounded-xl border px-3 py-2 text-sm ${colors.secondaryButton}`}>
@@ -127,11 +133,11 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                   </div>
 
                   <div className={`mt-5 rounded-3xl border p-5 ${registrationCardClasses(registrationTone)}`}>
-                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 lg:flex-row lg:items-center lg:justify-items-center">
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 lg:flex-row lg:items-start lg:justify-items-center">
                       <div className="flex flex-wrap items-center gap-3">
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>
-                          {registrationAvailabilityLabel(domain)}
-                        </span>
+                        <p className={`text-xs uppercase tracking-[0.2em] ${registrationCardTextClasses(registrationTone)}`}>
+                          Observações de registro
+                        </p>
                         <p className={`text-sm ${registrationCardTextClasses(registrationTone)}`}>
                           {registrationAvailabilityDescription(domain)}
                         </p>
