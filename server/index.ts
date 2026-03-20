@@ -113,28 +113,7 @@ function normalizeDate(value) {
     return null
   }
 
-  if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? null : value.toISOString()
-  }
-
-  const normalizedValue = String(value).trim()
-  if (!normalizedValue) {
-    return null
-  }
-
-  const compactDateMatch = normalizedValue.match(/^(\d{4})(\d{2})(\d{2})$/)
-  if (compactDateMatch) {
-    const [, year, month, day] = compactDateMatch
-    return `${year}-${month}-${day}T12:00:00.000Z`
-  }
-
-  const dateOnlyMatch = normalizedValue.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (dateOnlyMatch) {
-    const [, year, month, day] = dateOnlyMatch
-    return `${year}-${month}-${day}T12:00:00.000Z`
-  }
-
-  const parsed = new Date(normalizedValue)
+  const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) {
     return null
   }
@@ -316,9 +295,9 @@ function parseRegistrationStatus(expiresAt) {
 
 function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
   const events = Array.isArray(payload.events) ? payload.events : []
-  const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
-  const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
-  const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
+  const expiresAt = findEventDate(events, ['expiration'])
+  const lastChangedAt = findEventDate(events, ['last changed'])
+  const registrationCreatedAt = findEventDate(events, ['registration'])
   const registrarEntity = getEntityByRole(payload.entities, 'registrar')
   const registrantEntity = getEntityByRole(payload.entities, 'registrant')
   const checkedAt = new Date().toISOString()
