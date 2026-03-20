@@ -76,7 +76,7 @@ function registrationStatusClasses(status) {
       return 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/20'
     case 'expiring_soon':
       return 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20'
-    case 'expired':
+    case 'past_expiration':
       return 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/20'
     default:
       return 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'
@@ -89,8 +89,8 @@ function registrationStatusLabel(status) {
       return 'registro ativo'
     case 'expiring_soon':
       return 'expira em breve'
-    case 'expired':
-      return 'registro expirado'
+    case 'past_expiration':
+      return 'prazo de expiração passou'
     default:
       return 'dados de registro indisponíveis'
   }
@@ -121,7 +121,7 @@ function formatExpirationCountdown(domain) {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
-    return `expirou há ${Math.abs(diffDays)} dia(s)`
+    return `a data informada venceu há ${Math.abs(diffDays)} dia(s)`
   }
 
   if (diffDays === 0) {
@@ -141,6 +141,10 @@ function registrationDetails(domain) {
   }
 
   if (domain.registration_checked_at) {
+    if (domain.registration_status === 'past_expiration') {
+      return 'A data de expiração informada pelo RDAP já passou, mas o domínio ainda pode estar em renovação, quarentena ou outro período de retenção.'
+    }
+
     return 'A consulta RDAP retornou dados parciais para este domínio.'
   }
 
