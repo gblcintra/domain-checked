@@ -7,13 +7,52 @@
   font-family: Inter, system-ui, sans-serif;
 }
 
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: #020617;
+}
+
+:root[data-theme='light'] body {
+  background: #f8fafc;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+.theme-toggle {
+  border-color: rgb(148 163 184 / 0.3);
+  background: rgb(15 23 42 / 0.7);
+  color: rgb(226 232 240);
+}
+
+:root[data-theme='light'] .theme-toggle {
+  border-color: rgb(148 163 184 / 0.45);
+  background: rgb(255 255 255 / 0.9);
+  color: rgb(15 23 42);
+}
+
+.theme-registration-text {
+  color: rgb(236 254 255);
+}
+
+.theme-registration-subtext {
+  color: rgb(207 250 254 / 0.85);
+}
+
+:root[data-theme='light'] .theme-registration-text {
+  color: rgb(22 78 99);
+}
+
+:root[data-theme='light'] .theme-registration-subtext {
+  color: rgb(14 116 144 / 0.8);
 }
