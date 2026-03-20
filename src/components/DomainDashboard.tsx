@@ -109,44 +109,47 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                     <div>
                       <div className="flex flex-wrap items-center gap-3">
                         <h3 className={`text-lg font-semibold ${colors.statText}`}>{domain.hostname}</h3>
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${statusClasses(domain.last_status)}`}>{domain.last_status || 'pendente'}</span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium capitalize ${statusClasses(domain.last_status)}`}>
+                          {domain.last_status || 'pendente'}
+                        </span>
                       </div>
                       <p className={`mt-2 text-sm ${colors.pageText}`}>{domain.protocol}://{domain.hostname}</p>
                       {domain.notes && <p className={`mt-2 text-sm ${colors.infoText}`}>{domain.notes}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <button type="button" onClick={() => onRefreshOne(domain.id)} className={`rounded-xl border px-3 py-2 text-sm ${colors.secondaryButton}`}>Atualizar</button>
-                      <button type="button" onClick={() => onDelete(domain.id)} className={`rounded-xl border px-3 py-2 text-sm ${colors.dangerButton}`}>Remover</button>
+                      <button type="button" onClick={() => onRefreshOne(domain.id)} className={`rounded-xl border px-3 py-2 text-sm ${colors.secondaryButton}`}>
+                        Atualizar
+                      </button>
+                      <button type="button" onClick={() => onDelete(domain.id)} className={`rounded-xl border px-3 py-2 text-sm ${colors.dangerButton}`}>
+                        Remover
+                      </button>
                     </div>
                   </div>
 
                   <div className={`mt-5 rounded-3xl border p-5 ${registrationCardClasses(registrationTone)}`}>
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>{registrationAvailabilityLabel(domain)}</span>
-                          <p className={`text-sm ${registrationCardTextClasses(registrationTone)}`}>{registrationAvailabilityDescription(domain)}</p>
-                        </div>
-                        <div>
-                          <p className={`text-xs uppercase tracking-[0.2em] ${registrationCardTextClasses(registrationTone)}`}>Expiração do registro</p>
-                          <p className={`mt-2 text-2xl font-semibold ${registrationCardTitleClasses(registrationTone)}`}>{registrationExpirationLabel(domain)}</p>
-                          <p className={`mt-2 text-sm ${registrationCardTextClasses(registrationTone)}`}>{formatExpirationCountdown(domain)}</p>
-                        </div>
+                    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 lg:flex-row lg:items-center lg:justify-items-center">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>
+                          {registrationAvailabilityLabel(domain)}
+                        </span>
+                        <p className={`text-sm ${registrationCardTextClasses(registrationTone)}`}>
+                          {registrationAvailabilityDescription(domain)}
+                        </p>
                       </div>
-
-                      <div className={`w-full lg:max-w-[320px] ${theme === 'light' ? 'text-slate-700' : 'text-white'}`}>
-                        <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
-                          <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Disponibilidade</p>
-                          <p className={`mt-2 text-sm font-medium ${colors.statText}`}>{registrationAvailabilityLabel(domain)}</p>
-                          <p className={`mt-2 text-xs leading-5 ${colors.infoText}`}>{registrationAvailabilityDescription(domain)}</p>
-                        </div>
+                      <div>
+                        <p className={`text-xs uppercase tracking-[0.2em] ${registrationCardTextClasses(registrationTone)}`}>
+                          Expiração do registro
+                        </p>
+                        <p className={`mt-2 text-sm font-semibold ${registrationCardTitleClasses(registrationTone)}`}>
+                          {registrationExpirationLabel(domain)}
+                        </p>
+                        <p className={`mt-2 text-sm ${registrationCardTextClasses(registrationTone)}`}>
+                          {formatExpirationCountdown(domain)}
+                        </p>
                       </div>
                     </div>
 
-                    <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
-                      <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</p>
-                      <p className={`mt-2 text-sm leading-6 ${colors.statText}`}>{registrationDetails(domain)}</p>
-                    </div>
+
                   </div>
 
                   <dl className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -155,11 +158,67 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                       <dd className={`mt-2 text-lg ${colors.statText}`}>{httpSummary(domain)}</dd>
                       <p className={`mt-2 text-xs ${colors.infoText}`}>{httpDetails(domain)}</p>
                     </div>
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Latência</dt><dd className={`mt-2 text-lg ${colors.statText}`}>{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Última checagem</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Consulta RDAP</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{formatDate(domain.registration_checked_at)}</dd></div>
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Titular</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationOwnerLabel(domain)}</dd></div>
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Registrador</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.registrar || 'Não informado'}</dd></div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Latência
+                      </dt>
+                      <dd className={`mt-2 text-lg ${colors.statText}`}>
+                        {domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}
+                      </dd>
+                    </div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Última checagem
+                      </dt>
+                      <dd className={`mt-2 text-sm ${colors.statText}`}>
+                        {domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}
+                      </dd>
+                    </div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Consulta RDAP
+                      </dt>
+                      <dd className={`mt-2 text-sm ${colors.statText}`}>
+                        {formatDate(domain.registration_checked_at)}
+                      </dd>
+                    </div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Titular
+                      </dt>
+                      <dd className={`mt-2 text-sm ${colors.statText}`}>
+                        {registrationOwnerLabel(domain)}
+                      </dd>
+                    </div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Registrador
+                      </dt>
+                      <dd className={`mt-2 text-sm ${colors.statText}`}>
+                        {domain.registrar || 'Não informado'}
+                      </dd>
+                    </div>
+
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Detalhes do registro
+                      </dt>
+                      <dd className={`mt-2 text-sm leading-6 ${colors.statText}`}>
+                        {registrationDetails(domain)}
+                      </dd>
+                    </div>
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                      <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
+                        Disponibilidade
+                      </dt>
+                      <dt className={`mt-2 text-sm font-semibold ${registrationCardTitleClasses(registrationTone)}`}>
+                        {registrationAvailabilityLabel(domain)}
+                      </dt>
+                      <dd className={`mt-2 text-sm leading-6 ${colors.statText}`}>
+                        {registrationAvailabilityDescription(domain)}
+                      </dd>
+
+                    </div>
                   </dl>
 
                   {domain.rdap_url && (
