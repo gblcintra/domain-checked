@@ -147,6 +147,37 @@ function registrationDetails(domain) {
   return 'Sem detalhes disponíveis'
 }
 
+function registrationAvailabilityLabel(domain) {
+  switch (domain.registration_availability) {
+    case 'registered':
+      return 'Indisponível para registro'
+    case 'available':
+      return 'Disponível para registro'
+    default:
+      if (domain.registration_checked_at) {
+        return 'Disponibilidade não informada'
+      }
+
+      return 'Aguardando consulta'
+  }
+}
+
+function registrationOwnerLabel(domain) {
+  if (domain.registrant) {
+    return domain.registrant
+  }
+
+  if (domain.registration_availability === 'available') {
+    return 'Sem titular: domínio livre para registro'
+  }
+
+  if (domain.registration_checked_at) {
+    return 'Titular não informado no RDAP'
+  }
+
+  return 'Aguardando consulta'
+}
+
 function httpSummary(domain) {
   if (domain.last_http_code) {
     return String(domain.last_http_code)
@@ -391,6 +422,8 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Latência</dt><dd className={`mt-2 text-lg ${colors.statText}`}>{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Última checagem</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Consulta RDAP</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{formatDate(domain.registration_checked_at)}</dd></div>
+                  <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Disponibilidade</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationAvailabilityLabel(domain)}</dd></div>
+                  <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Titular</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationOwnerLabel(domain)}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Registrador</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.registrar || 'Não informado'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationDetails(domain)}</dd></div>
                 </dl>

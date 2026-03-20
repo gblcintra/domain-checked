@@ -67,6 +67,8 @@ function bootstrap() {
       registration_checked_at TEXT,
       registration_status TEXT,
       registrar TEXT,
+      registrant TEXT,
+      registration_availability TEXT,
       rdap_url TEXT,
       registration_details TEXT,
       registration_error TEXT,
@@ -79,6 +81,8 @@ function bootstrap() {
   addColumnIfMissing('domains', 'registration_checked_at', 'registration_checked_at TEXT')
   addColumnIfMissing('domains', 'registration_status', 'registration_status TEXT')
   addColumnIfMissing('domains', 'registrar', 'registrar TEXT')
+  addColumnIfMissing('domains', 'registrant', 'registrant TEXT')
+  addColumnIfMissing('domains', 'registration_availability', 'registration_availability TEXT')
   addColumnIfMissing('domains', 'rdap_url', 'rdap_url TEXT')
   addColumnIfMissing('domains', 'registration_details', 'registration_details TEXT')
   addColumnIfMissing('domains', 'registration_error', 'registration_error TEXT')
@@ -136,16 +140,25 @@ function getVcardField(entity, fieldName) {
   return typeof entry?.[3] === 'string' ? entry[3] : null
 }
 
-function getRegistrarName(entity) {
+function getEntityName(entity) {
   if (!entity) {
     return null
   }
 
   return firstNonEmpty(
     getVcardField(entity, 'fn'),
+    getVcardField(entity, 'org'),
     entity.publicIds?.find((item) => item?.identifier)?.identifier,
     entity.handle
   )
+}
+
+function getEntityByRole(entities, roleName) {
+  if (!Array.isArray(entities)) {
+    return null
+  }
+
+  return entities.find((item) => Array.isArray(item.roles) && item.roles.includes(roleName)) || null
 }
 
 function getWhoisLookupUrl(hostname) {
@@ -245,10 +258,14 @@ function findEventDate(events, actions) {
   return normalizeDate(match?.eventDate)
 }
 
-function formatRegistrationDetails(payload) {
+function formatRegistrationDetails(payload, { registrar, registrant, availability } = {}) {
   const details = [
+    availability === 'registered' ? 'Disponibilidade: indisponível para novo registro' : null,
+    availability === 'available' ? 'Disponibilidade: disponível para registro' : null,
     typeof payload.objectClassName === 'string' ? `Tipo: ${payload.objectClassName}` : null,
     typeof payload.handle === 'string' ? `Handle: ${payload.handle}` : null,
+    registrant ? `Titular: ${registrant}` : null,
+    registrar ? `Registrador: ${registrar}` : null,
     Array.isArray(payload.status) && payload.status.length > 0 ? `Status: ${payload.status.join(', ')}` : null,
     Array.isArray(payload.nameservers) ? `Nameservers: ${payload.nameservers.length}` : null,
     typeof payload.port43 === 'string' ? `WHOIS: ${payload.port43}` : null
@@ -271,6 +288,21 @@ async function lookupRegistration(domain) {
       })
 
       if (!response.ok) {
+        if (response.status === 404) {
+          return {
+            registrationExpiresAt: null,
+            registrationCheckedAt: new Date().toISOString(),
+            registrationStatus: 'unknown',
+            registrationAvailability: 'available',
+            registrar: null,
+            registrant: null,
+            rdapUrl: candidate,
+            registrationDetails: 'RDAP indica que o domínio está disponível para registro.',
+            registrationError: null,
+            lastChangedAt: null
+          }
+        }
+
         lastError = `RDAP retornou HTTP ${response.status}.`
         continue
       }
@@ -280,12 +312,17 @@ async function lookupRegistration(domain) {
       const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
       const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
       const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
-      const registrarEntity = Array.isArray(payload.entities)
-        ? payload.entities.find((item) => Array.isArray(item.roles) && item.roles.includes('registrar'))
-        : null
+      const registrarEntity = getEntityByRole(payload.entities, 'registrar')
+      const registrantEntity = getEntityByRole(payload.entities, 'registrant')
       const checkedAt = new Date().toISOString()
-      const registrar = getRegistrarName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
-      const registrationDetails = formatRegistrationDetails(payload)
+      const registrar = getEntityName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
+      const registrant = getEntityName(registrantEntity)
+      const registrationAvailability = 'registered'
+      const registrationDetails = formatRegistrationDetails(payload, {
+        registrar,
+        registrant,
+        availability: registrationAvailability
+      })
 
       let registrationStatus = 'unknown'
       if (expiresAt) {
@@ -305,7 +342,9 @@ async function lookupRegistration(domain) {
         registrationExpiresAt: expiresAt,
         registrationCheckedAt: checkedAt,
         registrationStatus,
+        registrationAvailability,
         registrar,
+        registrant,
         rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
         registrationError: expiresAt
           ? null
@@ -326,7 +365,9 @@ async function lookupRegistration(domain) {
     registrationExpiresAt: null,
     registrationCheckedAt: new Date().toISOString(),
     registrationStatus: 'unknown',
+    registrationAvailability: 'unknown',
     registrar: null,
+    registrant: null,
     rdapUrl: whoisLookupUrl,
     registrationDetails: null,
     registrationError: `${lastError} Consulte manualmente em ${whoisLookupUrl}`,
@@ -351,7 +392,9 @@ function buildFallbackCheckResult(domain, error) {
     registrationExpiresAt: null,
     registrationCheckedAt: new Date().toISOString(),
     registrationStatus: 'unknown',
+    registrationAvailability: 'unknown',
     registrar: null,
+    registrant: null,
     rdapUrl: whoisLookupUrl,
     registrationDetails: null,
     registrationError: whoisLookupUrl
@@ -544,7 +587,9 @@ function persistDomainCheck(domainId, result) {
         registration_expires_at = ?,
         registration_checked_at = ?,
         registration_status = ?,
+        registration_availability = ?,
         registrar = ?,
+        registrant = ?,
         rdap_url = ?,
         registration_details = ?,
         registration_error = ?
@@ -559,7 +604,9 @@ function persistDomainCheck(domainId, result) {
     result.registrationExpiresAt,
     result.registrationCheckedAt,
     result.registrationStatus,
+    result.registrationAvailability,
     result.registrar,
+    result.registrant,
     result.rdapUrl,
     result.registrationDetails,
     result.registrationError,
