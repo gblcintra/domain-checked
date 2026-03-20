@@ -318,7 +318,7 @@ function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
     registrationAvailability,
     registrar,
     registrant,
-    rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
+    rdapUrl: whoisLookupUrl || candidate,
     registrationError: expiresAt
       ? null
       : `RDAP sem data de expiração para ${domain.hostname}. Consulte manualmente em ${whoisLookupUrl}`,
@@ -361,7 +361,7 @@ async function lookupRegistration(domain: { hostname: string }) {
 
       if (!response.ok) {
         if (response.status === 404) {
-          return buildNotFoundResult(candidate)
+          return buildNotFoundResult(whoisLookupUrl)
         }
 
         lastError = `RDAP retornou HTTP ${response.status}.`
