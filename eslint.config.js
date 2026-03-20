@@ -1,13 +1,12 @@
 import js from '@eslint/js'
-import type { Linter } from 'eslint'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist', 'server/data'] },
+  { ignores: ['dist', 'server/data', '**/*.ts', '**/*.tsx', 'types.d.ts'] },
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2023,
       globals: globals.browser,
@@ -28,10 +27,10 @@ export default [
     }
   },
   {
-    files: ['server/**/*.{js,ts}'],
+    files: ['server/**/*.js'],
     languageOptions: {
       ecmaVersion: 2023,
       globals: globals.node
     }
   }
-] satisfies Linter.FlatConfig[]
+]
