@@ -5,10 +5,10 @@ Aplicação full stack com React + Tailwind no front-end e Express + SQLite no b
 ## Requisitos
 
 - **Node.js 22 LTS**. O projeto usa `better-sqlite3`, então versões muito novas do Node podem ficar sem binário pré-compilado. No Windows, o Node `25.3.0` costuma cair em build nativo e falhar durante o `yarn install`.
-- **Yarn 1.22.22** ou **npm**.
+- **Yarn 1.22.22**.
 - **Python 3** instalado e disponível no `PATH` apenas se você insistir em usar uma versão do Node sem binário pronto para `better-sqlite3`.
 
-> Recomendação: use Node 22 LTS para evitar compilar dependências nativas.
+> Recomendação: use Node 22 LTS com Yarn 1.22.22 para evitar compilar dependências nativas.
 
 ## Recursos
 
@@ -24,10 +24,26 @@ Aplicação full stack com React + Tailwind no front-end e Express + SQLite no b
 
 1. Copie `.env.example` para `.env`.
 2. Se você usa `nvm`, rode `nvm use` para carregar a versão definida em `.nvmrc`.
-3. Instale dependências com `yarn install` ou `npm install`.
-4. Rode `yarn dev` ou `npm run dev`.
+3. Ative o Corepack com `corepack enable` se necessário.
+4. Instale dependências com `yarn install`.
+5. Rode `yarn dev`.
 
 A API sobe em `http://localhost:3001` e o front-end em `http://localhost:5173`.
+
+## Se o Corepack não conseguir baixar o Yarn
+
+Em alguns ambientes, o comando `yarn` é fornecido pelo **Corepack**. Nesses casos, o Corepack tenta baixar o Yarn Classic antes de executar qualquer coisa. Se sua rede, proxy ou firewall bloquear esse download, você pode ver um erro parecido com:
+
+- `Error when performing the request to https://registry.yarnpkg.com/yarn/-/yarn-1.22.22.tgz`
+- `Proxy response (403) !== 200 when HTTP Tunneling`
+
+Se isso acontecer, mantenha o fluxo com Yarn e instale o **Yarn Classic 1.22.22** por outro caminho disponível no seu ambiente, por exemplo:
+
+1. `npm install -g yarn@1.22.22`
+2. `yarn install`
+3. `yarn dev`
+
+O projeto continua versionado com `yarn.lock` e `packageManager: yarn@1.22.22`.
 
 ## Erro no Windows com `better-sqlite3`
 
