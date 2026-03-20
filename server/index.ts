@@ -167,7 +167,7 @@ function getWhoisLookupUrl(hostname) {
 
 function normalizeDomainInput(input, fallbackProtocol = 'https') {
   if (typeof input !== 'string') {
-    throw new Error('Domínio é obrigatório.')
+    throw new TypeError('Domínio é obrigatório.')
   }
 
   const trimmed = input.trim()
@@ -206,7 +206,7 @@ function normalizeDomainInput(input, fallbackProtocol = 'https') {
   }
 }
 
-async function fetchJson(url, options = {}) {
+async function fetchJson(url, options: { signal?: AbortSignal } = {}) {
   const response = await fetch(url, {
     ...options,
     signal: options.signal || AbortSignal.timeout(8000)
@@ -258,7 +258,7 @@ function findEventDate(events, actions) {
   return normalizeDate(match?.eventDate)
 }
 
-function formatRegistrationDetails(payload, { registrar, registrant, availability } = {}) {
+function formatRegistrationDetails(payload, { registrar, registrant, availability }: { registrar?: string; registrant?: string; availability?: string } = {}) {
   const details = [
     availability === 'registered' ? 'Disponibilidade: indisponível para novo registro' : null,
     availability === 'available' ? 'Disponibilidade: disponível para registro' : null,
@@ -274,7 +274,79 @@ function formatRegistrationDetails(payload, { registrar, registrant, availabilit
   return details.length > 0 ? details.join(' • ') : null
 }
 
-async function lookupRegistration(domain) {
+function parseRegistrationStatus(expiresAt) {
+  if (!expiresAt) {
+    return 'unknown'
+  }
+
+  const diffMs = new Date(expiresAt).getTime() - Date.now()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffMs < 0) {
+    return 'expired'
+  }
+
+  if (diffDays <= 30) {
+    return 'expiring_soon'
+  }
+
+  return 'active'
+}
+
+function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
+  const events = Array.isArray(payload.events) ? payload.events : []
+  const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
+  const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
+  const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
+  const registrarEntity = getEntityByRole(payload.entities, 'registrar')
+  const registrantEntity = getEntityByRole(payload.entities, 'registrant')
+  const checkedAt = new Date().toISOString()
+  const registrar = getEntityName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
+  const registrant = getEntityName(registrantEntity)
+  const registrationAvailability = 'registered'
+  const registrationDetails = formatRegistrationDetails(payload, {
+    registrar,
+    registrant,
+    availability: registrationAvailability
+  })
+  const registrationStatus = parseRegistrationStatus(expiresAt)
+
+  return {
+    registrationExpiresAt: expiresAt,
+    registrationCheckedAt: checkedAt,
+    registrationStatus,
+    registrationAvailability,
+    registrar,
+    registrant,
+    rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
+    registrationError: expiresAt
+      ? null
+      : `RDAP sem data de expiração para ${domain.hostname}. Consulte manualmente em ${whoisLookupUrl}`,
+    registrationDetails: firstNonEmpty(
+      registrationDetails,
+      registrationCreatedAt ? `Criado em ${registrationCreatedAt}` : null,
+      lastChangedAt ? `Atualizado em ${lastChangedAt}` : null
+    ),
+    lastChangedAt
+  }
+}
+
+function buildNotFoundResult(candidate) {
+  return {
+    registrationExpiresAt: null,
+    registrationCheckedAt: new Date().toISOString(),
+    registrationStatus: 'unknown',
+    registrationAvailability: 'available',
+    registrar: null,
+    registrant: null,
+    rdapUrl: candidate,
+    registrationDetails: 'RDAP indica que o domínio está disponível para registro.',
+    registrationError: null,
+    lastChangedAt: null
+  }
+}
+
+async function lookupRegistration(domain: { hostname: string }) {
   const rdapCandidates = await getRdapCandidates(domain.hostname)
   const whoisLookupUrl = getWhoisLookupUrl(domain.hostname)
 
@@ -289,18 +361,7 @@ async function lookupRegistration(domain) {
 
       if (!response.ok) {
         if (response.status === 404) {
-          return {
-            registrationExpiresAt: null,
-            registrationCheckedAt: new Date().toISOString(),
-            registrationStatus: 'unknown',
-            registrationAvailability: 'available',
-            registrar: null,
-            registrant: null,
-            rdapUrl: candidate,
-            registrationDetails: 'RDAP indica que o domínio está disponível para registro.',
-            registrationError: null,
-            lastChangedAt: null
-          }
+          return buildNotFoundResult(candidate)
         }
 
         lastError = `RDAP retornou HTTP ${response.status}.`
@@ -308,54 +369,7 @@ async function lookupRegistration(domain) {
       }
 
       const payload = await response.json()
-      const events = Array.isArray(payload.events) ? payload.events : []
-      const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
-      const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
-      const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
-      const registrarEntity = getEntityByRole(payload.entities, 'registrar')
-      const registrantEntity = getEntityByRole(payload.entities, 'registrant')
-      const checkedAt = new Date().toISOString()
-      const registrar = getEntityName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
-      const registrant = getEntityName(registrantEntity)
-      const registrationAvailability = 'registered'
-      const registrationDetails = formatRegistrationDetails(payload, {
-        registrar,
-        registrant,
-        availability: registrationAvailability
-      })
-
-      let registrationStatus = 'unknown'
-      if (expiresAt) {
-        const diffMs = new Date(expiresAt).getTime() - Date.now()
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
-
-        if (diffMs < 0) {
-          registrationStatus = 'expired'
-        } else if (diffDays <= 30) {
-          registrationStatus = 'expiring_soon'
-        } else {
-          registrationStatus = 'active'
-        }
-      }
-
-      return {
-        registrationExpiresAt: expiresAt,
-        registrationCheckedAt: checkedAt,
-        registrationStatus,
-        registrationAvailability,
-        registrar,
-        registrant,
-        rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
-        registrationError: expiresAt
-          ? null
-          : `RDAP sem data de expiração para ${domain.hostname}. Consulte manualmente em ${whoisLookupUrl}`,
-        registrationDetails: firstNonEmpty(
-          registrationDetails,
-          registrationCreatedAt ? `Criado em ${registrationCreatedAt}` : null,
-          lastChangedAt ? `Atualizado em ${lastChangedAt}` : null
-        ),
-        lastChangedAt
-      }
+      return parseRdapResponse(payload, domain, candidate, whoisLookupUrl)
     } catch (error) {
       lastError = error.message
     }

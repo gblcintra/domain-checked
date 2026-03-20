@@ -245,6 +245,14 @@ function ThemeToggle({ theme, onToggle }) {
 
 function AuthCard({ mode, form, onChange, onSubmit, loading, error, success, onModeChange, resetToken, onReset, theme, onToggleTheme }) {
   const colors = themeOptions[theme]
+  
+  let buttonText = 'Enviar recuperação'
+  if (mode === 'login') {
+    buttonText = 'Entrar'
+  } else if (mode === 'register') {
+    buttonText = 'Cadastrar'
+  }
+
 
   return (
     <div className={`mx-auto w-full max-w-md rounded-3xl border p-8 shadow-2xl backdrop-blur ${colors.card}`}>
@@ -297,7 +305,7 @@ function AuthCard({ mode, form, onChange, onSubmit, loading, error, success, onM
 
         <button className={`w-full rounded-2xl px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${colors.accentButton}`}
           disabled={loading}>
-          {loading ? 'Processando...' : mode === 'login' ? 'Entrar' : mode === 'register' ? 'Cadastrar' : 'Enviar recuperação'}
+          {loading ? 'Processando...' : buttonText}
         </button>
       </form>
 
@@ -576,8 +584,8 @@ export default function App() {
   }
 
   async function handleResetPassword() {
-    const tokenInput = window.prompt('Cole o token de recuperação')
-    const password = window.prompt('Digite a nova senha')
+    const tokenInput = globalThis.prompt('Cole o token de recuperação')
+    const password = globalThis.prompt('Digite a nova senha')
     if (!tokenInput || !password) return
 
     try {
@@ -644,7 +652,24 @@ export default function App() {
 
   return (
     <main className={`min-h-screen transition-colors duration-300 ${themeOptions[activeTheme].shell}`}>
-      {!user ? (
+      {user ? (
+        <DomainDashboard
+          user={user}
+          token={token}
+          domains={domains}
+          onAdd={handleAddDomain}
+          onDelete={handleDeleteDomain}
+          onRefreshOne={handleRefreshOne}
+          onRefreshAll={handleRefreshAll}
+          adding={loading}
+          checking={checking}
+          stats={stats}
+          onLogout={handleLogout}
+          error={error}
+          theme={activeTheme}
+          onToggleTheme={handleThemeToggle}
+        />
+      ) : (
         <div className="flex min-h-screen items-center justify-center px-4 py-10">
           <AuthCard
             mode={mode}
@@ -665,23 +690,6 @@ export default function App() {
             onToggleTheme={handleThemeToggle}
           />
         </div>
-      ) : (
-        <DomainDashboard
-          user={user}
-          token={token}
-          domains={domains}
-          onAdd={handleAddDomain}
-          onDelete={handleDeleteDomain}
-          onRefreshOne={handleRefreshOne}
-          onRefreshAll={handleRefreshAll}
-          adding={loading}
-          checking={checking}
-          stats={stats}
-          onLogout={handleLogout}
-          error={error}
-          theme={activeTheme}
-          onToggleTheme={handleThemeToggle}
-        />
       )}
     </main>
   )
