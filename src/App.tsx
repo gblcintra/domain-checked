@@ -469,12 +469,36 @@ export default function App() {
     loadSession()
   }, [])
 
+  async function refreshAllDomains({ silent = false } = {}) {
+    if (!token) return []
+
+    try {
+      if (!silent) {
+        setChecking(true)
+      }
+
+      const data = await request('/domains/check-all', { method: 'POST', token })
+      setDomains(data.domains)
+      return data.domains
+    } catch (err) {
+      if (!silent) {
+        setError(err.message)
+      }
+      throw err
+    } finally {
+      if (!silent) {
+        setChecking(false)
+      }
+    }
+  }
+
   useEffect(() => {
     if (!token || !user) return undefined
+
+    refreshAllDomains({ silent: true }).catch(() => {})
+
     const interval = setInterval(() => {
-      request('/domains/check-all', { method: 'POST', token })
-        .then((data) => setDomains(data.domains))
-        .catch(() => {})
+      refreshAllDomains({ silent: true }).catch(() => {})
     }, POLL_INTERVAL)
 
     return () => clearInterval(interval)
@@ -538,9 +562,8 @@ export default function App() {
   async function handleAddDomain(form, onDone) {
     try {
       setLoading(true)
-      await request('/domains', { method: 'POST', token, body: form })
-      const data = await request('/domains', { token })
-      setDomains(data.domains)
+      const data = await request('/domains', { method: 'POST', token, body: form })
+      setDomains((current) => [data.domain, ...current.filter((item) => item.id !== data.domain.id)])
       onDone()
     } catch (err) {
       setError(err.message)
@@ -571,15 +594,7 @@ export default function App() {
   }
 
   async function handleRefreshAll() {
-    try {
-      setChecking(true)
-      const data = await request('/domains/check-all', { method: 'POST', token })
-      setDomains(data.domains)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setChecking(false)
-    }
+    await refreshAllDomains()
   }
 
   function handleLogout() {
