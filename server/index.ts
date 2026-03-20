@@ -334,47 +334,78 @@ async function lookupRegistration(domain) {
   }
 }
 
-async function checkDomain(domain) {
-  const normalizedDomain = normalizeDomainInput(domain.hostname, domain.protocol)
-  const startedAt = Date.now()
-  const url = `${normalizedDomain.protocol}://${normalizedDomain.hostname}`
-
-  const [registration, availability] = await Promise.all([
-    lookupRegistration(normalizedDomain),
-    (async () => {
-      try {
-        const lookup = await dns.lookup(normalizedDomain.hostname)
-        const response = await fetch(url, {
-          method: 'GET',
-          redirect: 'follow',
-          signal: AbortSignal.timeout(8000),
-          headers: { 'user-agent': 'domain-checked-bot/1.0' }
-        })
-
-        return {
-          status: response.ok ? 'online' : 'warning',
-          httpCode: response.status,
-          responseMs: Date.now() - startedAt,
-          error: null,
-          resolvedAddress: lookup.address
-        }
-      } catch (error) {
-        return {
-          status: 'offline',
-          httpCode: null,
-          responseMs: Date.now() - startedAt,
-          error: error.message,
-          resolvedAddress: null
-        }
-      }
-    })()
-  ])
+function buildFallbackCheckResult(domain, error) {
+  const hostname = typeof domain?.hostname === 'string' ? domain.hostname : ''
+  const protocol = domain?.protocol === 'http' ? 'http' : 'https'
+  const whoisLookupUrl = hostname ? getWhoisLookupUrl(hostname) : null
+  const errorMessage = error instanceof Error ? error.message : 'Falha inesperada ao verificar o domínio.'
 
   return {
-    ...availability,
-    ...registration,
-    hostname: normalizedDomain.hostname,
-    protocol: normalizedDomain.protocol
+    hostname,
+    protocol,
+    status: 'offline',
+    httpCode: null,
+    responseMs: null,
+    error: errorMessage,
+    resolvedAddress: null,
+    registrationExpiresAt: null,
+    registrationCheckedAt: new Date().toISOString(),
+    registrationStatus: 'unknown',
+    registrar: null,
+    rdapUrl: whoisLookupUrl,
+    registrationDetails: null,
+    registrationError: whoisLookupUrl
+      ? `${errorMessage} Consulte manualmente em ${whoisLookupUrl}`
+      : errorMessage,
+    lastChangedAt: null
+  }
+}
+
+async function checkDomain(domain) {
+  try {
+    const normalizedDomain = normalizeDomainInput(domain.hostname, domain.protocol)
+    const startedAt = Date.now()
+    const url = `${normalizedDomain.protocol}://${normalizedDomain.hostname}`
+
+    const [registration, availability] = await Promise.all([
+      lookupRegistration(normalizedDomain),
+      (async () => {
+        try {
+          const lookup = await dns.lookup(normalizedDomain.hostname)
+          const response = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+            signal: AbortSignal.timeout(8000),
+            headers: { 'user-agent': 'domain-checked-bot/1.0' }
+          })
+
+          return {
+            status: response.ok ? 'online' : 'warning',
+            httpCode: response.status,
+            responseMs: Date.now() - startedAt,
+            error: null,
+            resolvedAddress: lookup.address
+          }
+        } catch (error) {
+          return {
+            status: 'offline',
+            httpCode: null,
+            responseMs: Date.now() - startedAt,
+            error: error.message,
+            resolvedAddress: null
+          }
+        }
+      })()
+    ])
+
+    return {
+      ...availability,
+      ...registration,
+      hostname: normalizedDomain.hostname,
+      protocol: normalizedDomain.protocol
+    }
+  } catch (error) {
+    return buildFallbackCheckResult(domain, error)
   }
 }
 
