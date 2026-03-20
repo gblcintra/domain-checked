@@ -124,11 +124,15 @@ function formatExpirationCountdown(value) {
 }
 
 function registrationDetails(domain) {
-  if (!domain.registration_expires_at) {
-    return 'Sem data disponível'
+  if (domain.registration_details) {
+    return domain.registration_details
   }
 
-  return domain.registration_error || 'Sem erros'
+  if (domain.registration_error) {
+    return domain.registration_error
+  }
+
+  return 'Sem detalhes disponíveis'
 }
 
 type RequestOptions = { token?: string; method?: string; body?: unknown }
