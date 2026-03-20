@@ -279,7 +279,7 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
 
                 {domain.rdap_url && (
                   <p className="mt-3 text-xs text-slate-500">
-                    Fonte RDAP: <a className="text-cyan-300 underline underline-offset-2" href={domain.rdap_url} target="_blank" rel="noreferrer">{domain.rdap_url}</a>
+                    Fonte da consulta: <a className="text-cyan-300 underline underline-offset-2" href={domain.rdap_url} target="_blank" rel="noreferrer">{domain.rdap_url}</a>
                   </p>
                 )}
               </article>
