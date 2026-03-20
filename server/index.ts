@@ -295,9 +295,9 @@ function parseRegistrationStatus(expiresAt) {
 
 function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
   const events = Array.isArray(payload.events) ? payload.events : []
-  const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
-  const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
-  const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
+  const expiresAt = findEventDate(events, ['expiration'])
+  const lastChangedAt = findEventDate(events, ['last changed'])
+  const registrationCreatedAt = findEventDate(events, ['registration'])
   const registrarEntity = getEntityByRole(payload.entities, 'registrar')
   const registrantEntity = getEntityByRole(payload.entities, 'registrant')
   const checkedAt = new Date().toISOString()
