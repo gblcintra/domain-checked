@@ -152,6 +152,47 @@ function getWhoisLookupUrl(hostname) {
   return `https://www.whois.com/whois/${hostname}`
 }
 
+function normalizeDomainInput(input, fallbackProtocol = 'https') {
+  if (typeof input !== 'string') {
+    throw new Error('Domínio é obrigatório.')
+  }
+
+  const trimmed = input.trim()
+  if (!trimmed) {
+    throw new Error('Domínio é obrigatório.')
+  }
+
+  const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `${fallbackProtocol}://${trimmed}`
+
+  let parsed
+  try {
+    parsed = new URL(withScheme)
+  } catch {
+    throw new Error('Informe um domínio válido, sem caminhos ou parâmetros inválidos.')
+  }
+
+  if (!parsed.hostname) {
+    throw new Error('Informe um domínio válido.')
+  }
+
+  if (parsed.username || parsed.password || (parsed.port && !['80', '443'].includes(parsed.port))) {
+    throw new Error('Informe apenas o domínio principal, sem usuário, senha ou porta personalizada.')
+  }
+
+  if (parsed.pathname && parsed.pathname !== '/') {
+    throw new Error('Informe apenas o domínio, sem páginas internas ou caminhos.')
+  }
+
+  if (parsed.search || parsed.hash) {
+    throw new Error('Informe apenas o domínio, sem parâmetros ou âncoras.')
+  }
+
+  return {
+    hostname: parsed.hostname.replace(/\.$/, '').toLowerCase(),
+    protocol: parsed.protocol === 'http:' ? 'http' : 'https'
+  }
+}
+
 async function fetchJson(url, options = {}) {
   const response = await fetch(url, {
     ...options,
@@ -294,14 +335,15 @@ async function lookupRegistration(domain) {
 }
 
 async function checkDomain(domain) {
+  const normalizedDomain = normalizeDomainInput(domain.hostname, domain.protocol)
   const startedAt = Date.now()
-  const url = `${domain.protocol}://${domain.hostname}`
+  const url = `${normalizedDomain.protocol}://${normalizedDomain.hostname}`
 
   const [registration, availability] = await Promise.all([
-    lookupRegistration(domain),
+    lookupRegistration(normalizedDomain),
     (async () => {
       try {
-        const lookup = await dns.lookup(domain.hostname)
+        const lookup = await dns.lookup(normalizedDomain.hostname)
         const response = await fetch(url, {
           method: 'GET',
           redirect: 'follow',
@@ -330,7 +372,9 @@ async function checkDomain(domain) {
 
   return {
     ...availability,
-    ...registration
+    ...registration,
+    hostname: normalizedDomain.hostname,
+    protocol: normalizedDomain.protocol
   }
 }
 
@@ -425,14 +469,12 @@ app.get('/api/domains', auth, (req, res) => {
 
 app.post('/api/domains', auth, async (req, res) => {
   const { hostname, protocol = 'https', notes = '' } = req.body
-  if (!hostname) {
-    return res.status(400).json({ error: 'Domínio é obrigatório.' })
-  }
 
   try {
+    const normalizedDomain = normalizeDomainInput(hostname, protocol)
     const result = db
       .prepare('INSERT INTO domains (user_id, hostname, protocol, notes) VALUES (?, ?, ?, ?)')
-      .run(req.user.sub, hostname.trim().toLowerCase(), protocol, notes)
+      .run(req.user.sub, normalizedDomain.hostname, normalizedDomain.protocol, notes)
     const domain = db.prepare('SELECT * FROM domains WHERE id = ?').get(result.lastInsertRowid)
 
     try {
@@ -444,8 +486,12 @@ app.post('/api/domains', auth, async (req, res) => {
 
     const updatedDomain = db.prepare('SELECT * FROM domains WHERE id = ?').get(result.lastInsertRowid)
     res.status(201).json({ domain: updatedDomain })
-  } catch {
-    res.status(409).json({ error: 'Esse domínio já foi cadastrado.' })
+  } catch (error) {
+    if (error?.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({ error: 'Esse domínio já foi cadastrado.' })
+    }
+
+    return res.status(400).json({ error: error.message || 'Não foi possível cadastrar o domínio.' })
   }
 })
 
@@ -457,7 +503,9 @@ app.delete('/api/domains/:id', auth, (req, res) => {
 function persistDomainCheck(domainId, result) {
   db.prepare(`
     UPDATE domains
-    SET last_checked_at = CURRENT_TIMESTAMP,
+    SET hostname = ?,
+        protocol = ?,
+        last_checked_at = CURRENT_TIMESTAMP,
         last_status = ?,
         last_http_code = ?,
         last_response_ms = ?,
@@ -471,6 +519,8 @@ function persistDomainCheck(domainId, result) {
         registration_error = ?
     WHERE id = ?
   `).run(
+    result.hostname,
+    result.protocol,
     result.status,
     result.httpCode,
     result.responseMs,
