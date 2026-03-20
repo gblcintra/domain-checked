@@ -70,29 +70,22 @@ function statusClasses(status) {
   }
 }
 
-function registrationStatusClasses(status) {
-  switch (status) {
-    case 'active':
+function registrationAvailabilityClasses(domain) {
+  switch (domain.registration_availability) {
+    case 'registered':
+      return 'bg-cyan-500/15 text-cyan-100 ring-1 ring-cyan-400/20'
+    case 'available':
       return 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/20'
-    case 'expiring_soon':
-      return 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20'
-    case 'expired':
-      return 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/20'
     default:
-      return 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'
-  }
-}
+      if (domain.registration_status === 'expiring_soon') {
+        return 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20'
+      }
 
-function registrationStatusLabel(status) {
-  switch (status) {
-    case 'active':
-      return 'registro ativo'
-    case 'expiring_soon':
-      return 'expira em breve'
-    case 'expired':
-      return 'registro expirado'
-    default:
-      return 'dados de registro indisponíveis'
+      if (domain.registration_status === 'expired') {
+        return 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/20'
+      }
+
+      return 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'
   }
 }
 
@@ -121,7 +114,7 @@ function formatExpirationCountdown(domain) {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
-    return `expirou há ${Math.abs(diffDays)} dia(s)`
+    return `a data de expiração passou há ${Math.abs(diffDays)} dia(s)`
   }
 
   if (diffDays === 0) {
@@ -141,6 +134,10 @@ function registrationDetails(domain) {
   }
 
   if (domain.registration_checked_at) {
+    if (domain.registration_status === 'expired') {
+      return 'A data de expiração informada pelo RDAP já passou, mas a disponibilidade real depende do campo de disponibilidade retornado na consulta RDAP.'
+    }
+
     return 'A consulta RDAP retornou dados parciais para este domínio.'
   }
 
@@ -414,7 +411,7 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                 </div>
 
                 <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-500/5 p-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationStatusClasses(domain.registration_status)}`}>{registrationStatusLabel(domain.registration_status)}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>{registrationAvailabilityLabel(domain)}</span>
                   <div className="text-sm text-cyan-50 theme-registration-text">
                     <p className="font-medium">Expiração do registro: {formatDate(domain.registration_expires_at)}</p>
                     <p className="theme-registration-subtext">{formatExpirationCountdown(domain)}</p>
