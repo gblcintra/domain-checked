@@ -134,17 +134,18 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         </div>
                       </div>
 
-                      <div className={`grid gap-3 sm:grid-cols-2 lg:min-w-[320px] ${theme === 'light' ? 'text-slate-700' : 'text-white'}`}>
+                      <div className={`w-full lg:max-w-[320px] ${theme === 'light' ? 'text-slate-700' : 'text-white'}`}>
                         <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
                           <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Disponibilidade</p>
                           <p className={`mt-2 text-sm font-medium ${colors.statText}`}>{registrationAvailabilityLabel(domain)}</p>
                           <p className={`mt-2 text-xs leading-5 ${colors.infoText}`}>{registrationAvailabilityDescription(domain)}</p>
                         </div>
-                        <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
-                          <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</p>
-                          <p className={`mt-2 text-sm leading-6 ${colors.statText}`}>{registrationDetails(domain)}</p>
-                        </div>
                       </div>
+                    </div>
+
+                    <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
+                      <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</p>
+                      <p className={`mt-2 text-sm leading-6 ${colors.statText}`}>{registrationDetails(domain)}</p>
                     </div>
                   </div>
 
