@@ -159,6 +159,99 @@ function registrationAvailabilityLabel(domain) {
   }
 }
 
+function registrationAvailabilityDescription(domain) {
+  if (domain.registration_availability === 'available') {
+    return 'Nenhum bloqueio de registro foi retornado pelo RDAP nesta consulta.'
+  }
+
+  if (domain.registration_availability === 'registered') {
+    return 'O domínio aparece como registrado e não está livre para novo cadastro.'
+  }
+
+  if (domain.registration_checked_at) {
+    return 'O RDAP respondeu, mas não trouxe um campo conclusivo sobre disponibilidade.'
+  }
+
+  return 'Assim que a consulta RDAP terminar, este status será atualizado aqui.'
+}
+
+function registrationStatusTone(domain) {
+  if (domain.registration_availability === 'available') {
+    return 'emerald'
+  }
+
+  if (domain.registration_availability === 'registered') {
+    return 'cyan'
+  }
+
+  if (domain.registration_status === 'expired') {
+    return 'rose'
+  }
+
+  if (domain.registration_status === 'expiring_soon') {
+    return 'amber'
+  }
+
+  return 'slate'
+}
+
+function registrationCardClasses(tone) {
+  switch (tone) {
+    case 'emerald':
+      return 'border-emerald-400/20 bg-emerald-500/10'
+    case 'cyan':
+      return 'border-cyan-400/20 bg-cyan-500/10'
+    case 'amber':
+      return 'border-amber-400/20 bg-amber-500/10'
+    case 'rose':
+      return 'border-rose-400/20 bg-rose-500/10'
+    default:
+      return 'border-white/10 bg-white/5'
+  }
+}
+
+function registrationCardTitleClasses(tone) {
+  switch (tone) {
+    case 'emerald':
+      return 'text-emerald-100'
+    case 'cyan':
+      return 'text-cyan-100'
+    case 'amber':
+      return 'text-amber-100'
+    case 'rose':
+      return 'text-rose-100'
+    default:
+      return 'text-slate-100'
+  }
+}
+
+function registrationCardTextClasses(tone) {
+  switch (tone) {
+    case 'emerald':
+      return 'text-emerald-50/80'
+    case 'cyan':
+      return 'text-cyan-50/80'
+    case 'amber':
+      return 'text-amber-50/80'
+    case 'rose':
+      return 'text-rose-50/80'
+    default:
+      return 'text-slate-300'
+  }
+}
+
+function registrationExpirationLabel(domain) {
+  if (domain.registration_expires_at) {
+    return formatDate(domain.registration_expires_at)
+  }
+
+  if (domain.registration_checked_at) {
+    return 'Não informada'
+  }
+
+  return '--'
+}
+
 function registrationOwnerLabel(domain) {
   if (domain.registrant) {
     return domain.registrant
@@ -328,6 +421,9 @@ function AuthCard({ mode, form, onChange, onSubmit, loading, error, success, onM
 function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, onRefreshAll, adding, checking, stats, onLogout, error, theme, onToggleTheme }) {
   const [form, setForm] = useState(emptyDomain)
   const colors = themeOptions[theme]
+  const detailCardClass = theme === 'light'
+    ? 'border-slate-200/80 bg-white/85'
+    : 'border-white/10 bg-slate-950/40'
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -410,11 +506,31 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   </div>
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-500/5 p-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>{registrationAvailabilityLabel(domain)}</span>
-                  <div className="text-sm text-cyan-50 theme-registration-text">
-                    <p className="font-medium">Expiração do registro: {formatDate(domain.registration_expires_at)}</p>
-                    <p className="theme-registration-subtext">{formatExpirationCountdown(domain)}</p>
+                <div className={`mt-5 rounded-3xl border p-5 ${registrationCardClasses(registrationStatusTone(domain))}`}>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>{registrationAvailabilityLabel(domain)}</span>
+                        <p className={`text-sm ${registrationCardTextClasses(registrationStatusTone(domain))}`}>{registrationAvailabilityDescription(domain)}</p>
+                      </div>
+                      <div>
+                        <p className={`text-xs uppercase tracking-[0.2em] ${registrationCardTextClasses(registrationStatusTone(domain))}`}>Expiração do registro</p>
+                        <p className={`mt-2 text-2xl font-semibold ${registrationCardTitleClasses(registrationStatusTone(domain))}`}>{registrationExpirationLabel(domain)}</p>
+                        <p className={`mt-2 text-sm ${registrationCardTextClasses(registrationStatusTone(domain))}`}>{formatExpirationCountdown(domain)}</p>
+                      </div>
+                    </div>
+
+                    <div className={`grid gap-3 sm:grid-cols-2 lg:min-w-[320px] ${theme === 'light' ? 'text-slate-700' : 'text-white'}`}>
+                      <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
+                        <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Disponibilidade</p>
+                        <p className={`mt-2 text-sm font-medium ${colors.statText}`}>{registrationAvailabilityLabel(domain)}</p>
+                        <p className={`mt-2 text-xs leading-5 ${colors.infoText}`}>{registrationAvailabilityDescription(domain)}</p>
+                      </div>
+                      <div className={`rounded-2xl border p-4 ${detailCardClass}`}>
+                        <p className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</p>
+                        <p className={`mt-2 text-sm leading-6 ${colors.statText}`}>{registrationDetails(domain)}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -427,10 +543,8 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Latência</dt><dd className={`mt-2 text-lg ${colors.statText}`}>{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Última checagem</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Consulta RDAP</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{formatDate(domain.registration_checked_at)}</dd></div>
-                  <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Disponibilidade</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationAvailabilityLabel(domain)}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Titular</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationOwnerLabel(domain)}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Registrador</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.registrar || 'Não informado'}</dd></div>
-                  <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Detalhes do registro</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{registrationDetails(domain)}</dd></div>
                 </dl>
 
                 {domain.rdap_url && (
