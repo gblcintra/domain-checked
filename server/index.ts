@@ -283,7 +283,7 @@ function parseRegistrationStatus(expiresAt) {
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffMs < 0) {
-    return 'past_expiration'
+    return 'expired'
   }
 
   if (diffDays <= 30) {
