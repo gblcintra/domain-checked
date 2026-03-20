@@ -226,7 +226,7 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
             </select>
             <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               placeholder="Observações internas"
-              rows="4"
+              rows={4}
               className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none" />
             <button disabled={adding} className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950 hover:bg-slate-200 disabled:opacity-60">
               {adding ? 'Salvando...' : 'Salvar domínio'}
