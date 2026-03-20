@@ -6,11 +6,11 @@
   "scripts": {
     "dev": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "vite",
-    "dev:server": "node server/index.js",
+    "dev:server": "node server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "start": "node server/index.js"
+    "start": "node server/index.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

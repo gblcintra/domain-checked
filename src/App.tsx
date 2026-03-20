@@ -28,7 +28,9 @@ function statusClasses(status) {
   }
 }
 
-async function request(path, { token, method = 'GET', body } = {}) {
+type RequestOptions = { token?: string; method?: string; body?: unknown }
+
+async function request(path: string, { token, method = 'GET', body }: RequestOptions = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
