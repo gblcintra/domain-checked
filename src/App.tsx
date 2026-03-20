@@ -92,7 +92,7 @@ function registrationStatusLabel(status) {
     case 'expired':
       return 'registro expirado'
     default:
-      return 'registro indefinido'
+      return 'dados de registro indisponíveis'
   }
 }
 
@@ -104,12 +104,20 @@ function formatDate(value) {
   return new Date(value).toLocaleString('pt-BR')
 }
 
-function formatExpirationCountdown(value) {
-  if (!value) {
-    return 'Sem data disponível'
+function formatExpirationCountdown(domain) {
+  if (!domain.registration_expires_at) {
+    if (domain.registration_error) {
+      return 'O serviço consultado não informou a data de expiração.'
+    }
+
+    if (domain.registration_checked_at) {
+      return 'A consulta foi concluída, mas sem data de expiração retornada.'
+    }
+
+    return 'Aguardando a primeira consulta RDAP.'
   }
 
-  const diffMs = new Date(value).getTime() - Date.now()
+  const diffMs = new Date(domain.registration_expires_at).getTime() - Date.now()
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 
   if (diffDays < 0) {
@@ -132,7 +140,35 @@ function registrationDetails(domain) {
     return domain.registration_error
   }
 
+  if (domain.registration_checked_at) {
+    return 'A consulta RDAP retornou dados parciais para este domínio.'
+  }
+
   return 'Sem detalhes disponíveis'
+}
+
+function httpSummary(domain) {
+  if (domain.last_http_code) {
+    return String(domain.last_http_code)
+  }
+
+  if (domain.last_error) {
+    return 'sem resposta'
+  }
+
+  return '--'
+}
+
+function httpDetails(domain) {
+  if (domain.last_error) {
+    return domain.last_error
+  }
+
+  if (domain.last_checked_at) {
+    return 'Última checagem concluída sem código HTTP disponível.'
+  }
+
+  return 'Aguardando a primeira checagem HTTP.'
 }
 
 type RequestOptions = { token?: string; method?: string; body?: unknown }
@@ -342,12 +378,16 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationStatusClasses(domain.registration_status)}`}>{registrationStatusLabel(domain.registration_status)}</span>
                   <div className="text-sm text-cyan-50 theme-registration-text">
                     <p className="font-medium">Expiração do registro: {formatDate(domain.registration_expires_at)}</p>
-                    <p className="theme-registration-subtext">{formatExpirationCountdown(domain.registration_expires_at)}</p>
+                    <p className="theme-registration-subtext">{formatExpirationCountdown(domain)}</p>
                   </div>
                 </div>
 
                 <dl className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>HTTP</dt><dd className={`mt-2 text-lg ${colors.statText}`}>{domain.last_http_code ?? '--'}</dd></div>
+                  <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                    <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>HTTP</dt>
+                    <dd className={`mt-2 text-lg ${colors.statText}`}>{httpSummary(domain)}</dd>
+                    <p className={`mt-2 text-xs ${colors.infoText}`}>{httpDetails(domain)}</p>
+                  </div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Latência</dt><dd className={`mt-2 text-lg ${colors.statText}`}>{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Última checagem</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
                   <div className={`rounded-2xl p-4 ${colors.panel}`}><dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>Consulta RDAP</dt><dd className={`mt-2 text-sm ${colors.statText}`}>{formatDate(domain.registration_checked_at)}</dd></div>

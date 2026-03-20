@@ -197,7 +197,10 @@ async function getRdapCandidates(hostname) {
 
 function findEventDate(events, actions) {
   const allowedActions = actions.map((action) => action.toLowerCase())
-  const match = events.find((item) => allowedActions.includes(String(item?.eventAction || '').toLowerCase()))
+  const match = events.find((item) => {
+    const eventAction = String(item?.eventAction || '').toLowerCase().trim()
+    return allowedActions.some((action) => eventAction === action || eventAction.includes(action) || action.includes(eventAction))
+  })
   return normalizeDate(match?.eventDate)
 }
 
@@ -233,9 +236,9 @@ async function lookupRegistration(domain) {
 
       const payload = await response.json()
       const events = Array.isArray(payload.events) ? payload.events : []
-      const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiry', 'expires'])
-      const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'updated'])
-      const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'created'])
+      const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiration of registration', 'expiry', 'expires'])
+      const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'last update', 'updated'])
+      const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'creation', 'created'])
       const registrarEntity = Array.isArray(payload.entities)
         ? payload.entities.find((item) => Array.isArray(item.roles) && item.roles.includes('registrar'))
         : null
