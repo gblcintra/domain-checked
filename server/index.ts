@@ -68,6 +68,7 @@ function bootstrap() {
       registration_status TEXT,
       registrar TEXT,
       rdap_url TEXT,
+      registration_details TEXT,
       registration_error TEXT,
       UNIQUE(user_id, hostname),
       FOREIGN KEY(user_id) REFERENCES users(id)
@@ -79,6 +80,7 @@ function bootstrap() {
   addColumnIfMissing('domains', 'registration_status', 'registration_status TEXT')
   addColumnIfMissing('domains', 'registrar', 'registrar TEXT')
   addColumnIfMissing('domains', 'rdap_url', 'rdap_url TEXT')
+  addColumnIfMissing('domains', 'registration_details', 'registration_details TEXT')
   addColumnIfMissing('domains', 'registration_error', 'registration_error TEXT')
 }
 
@@ -115,17 +117,35 @@ function normalizeDate(value) {
   return parsed.toISOString()
 }
 
+function firstNonEmpty(...values) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim()
+    }
+  }
+
+  return null
+}
+
+function getVcardField(entity, fieldName) {
+  if (!entity?.vcardArray?.[1]) {
+    return null
+  }
+
+  const entry = entity.vcardArray[1].find((item) => item[0] === fieldName)
+  return typeof entry?.[3] === 'string' ? entry[3] : null
+}
+
 function getRegistrarName(entity) {
   if (!entity) {
     return null
   }
 
-  const fullName = entity.vcardArray?.[1]?.find((item) => item[0] === 'fn')
-  if (fullName?.[3]) {
-    return fullName[3]
-  }
-
-  return entity.handle || null
+  return firstNonEmpty(
+    getVcardField(entity, 'fn'),
+    entity.publicIds?.find((item) => item?.identifier)?.identifier,
+    entity.handle
+  )
 }
 
 function getWhoisLookupUrl(hostname) {
@@ -175,6 +195,24 @@ async function getRdapCandidates(hostname) {
   return defaultCandidates
 }
 
+function findEventDate(events, actions) {
+  const allowedActions = actions.map((action) => action.toLowerCase())
+  const match = events.find((item) => allowedActions.includes(String(item?.eventAction || '').toLowerCase()))
+  return normalizeDate(match?.eventDate)
+}
+
+function formatRegistrationDetails(payload) {
+  const details = [
+    typeof payload.objectClassName === 'string' ? `Tipo: ${payload.objectClassName}` : null,
+    typeof payload.handle === 'string' ? `Handle: ${payload.handle}` : null,
+    Array.isArray(payload.status) && payload.status.length > 0 ? `Status: ${payload.status.join(', ')}` : null,
+    Array.isArray(payload.nameservers) ? `Nameservers: ${payload.nameservers.length}` : null,
+    typeof payload.port43 === 'string' ? `WHOIS: ${payload.port43}` : null
+  ].filter(Boolean)
+
+  return details.length > 0 ? details.join(' • ') : null
+}
+
 async function lookupRegistration(domain) {
   const rdapCandidates = await getRdapCandidates(domain.hostname)
   const whoisLookupUrl = getWhoisLookupUrl(domain.hostname)
@@ -195,13 +233,15 @@ async function lookupRegistration(domain) {
 
       const payload = await response.json()
       const events = Array.isArray(payload.events) ? payload.events : []
-      const expirationEvent = events.find((item) => item.eventAction === 'expiration')
-      const lastChangedEvent = events.find((item) => item.eventAction === 'last changed')
+      const expiresAt = findEventDate(events, ['expiration', 'expiration date', 'expiry', 'expires'])
+      const lastChangedAt = findEventDate(events, ['last changed', 'last update of RDAP database', 'updated'])
+      const registrationCreatedAt = findEventDate(events, ['registration', 'registration date', 'created'])
       const registrarEntity = Array.isArray(payload.entities)
         ? payload.entities.find((item) => Array.isArray(item.roles) && item.roles.includes('registrar'))
         : null
-      const expiresAt = normalizeDate(expirationEvent?.eventDate)
       const checkedAt = new Date().toISOString()
+      const registrar = getRegistrarName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
+      const registrationDetails = formatRegistrationDetails(payload)
 
       let registrationStatus = 'unknown'
       if (expiresAt) {
@@ -221,10 +261,17 @@ async function lookupRegistration(domain) {
         registrationExpiresAt: expiresAt,
         registrationCheckedAt: checkedAt,
         registrationStatus,
-        registrar: getRegistrarName(registrarEntity),
+        registrar,
         rdapUrl: payload.links?.find((item) => item.rel === 'self')?.href || candidate,
-        registrationError: expiresAt ? null : `RDAP sem data de expiração. Consulte manualmente em ${whoisLookupUrl}`,
-        lastChangedAt: normalizeDate(lastChangedEvent?.eventDate)
+        registrationError: expiresAt
+          ? null
+          : `RDAP sem data de expiração para ${domain.hostname}. Consulte manualmente em ${whoisLookupUrl}`,
+        registrationDetails: firstNonEmpty(
+          registrationDetails,
+          registrationCreatedAt ? `Criado em ${registrationCreatedAt}` : null,
+          lastChangedAt ? `Atualizado em ${lastChangedAt}` : null
+        ),
+        lastChangedAt
       }
     } catch (error) {
       lastError = error.message
@@ -237,6 +284,7 @@ async function lookupRegistration(domain) {
     registrationStatus: 'unknown',
     registrar: null,
     rdapUrl: whoisLookupUrl,
+    registrationDetails: null,
     registrationError: `${lastError} Consulte manualmente em ${whoisLookupUrl}`,
     lastChangedAt: null
   }
@@ -372,7 +420,7 @@ app.get('/api/domains', auth, (req, res) => {
   res.json({ domains })
 })
 
-app.post('/api/domains', auth, (req, res) => {
+app.post('/api/domains', auth, async (req, res) => {
   const { hostname, protocol = 'https', notes = '' } = req.body
   if (!hostname) {
     return res.status(400).json({ error: 'Domínio é obrigatório.' })
@@ -383,7 +431,16 @@ app.post('/api/domains', auth, (req, res) => {
       .prepare('INSERT INTO domains (user_id, hostname, protocol, notes) VALUES (?, ?, ?, ?)')
       .run(req.user.sub, hostname.trim().toLowerCase(), protocol, notes)
     const domain = db.prepare('SELECT * FROM domains WHERE id = ?').get(result.lastInsertRowid)
-    res.status(201).json({ domain })
+
+    try {
+      const checkResult = await checkDomain(domain)
+      persistDomainCheck(domain.id, checkResult)
+    } catch {
+      // The domain is created even if the initial check fails; the user can retry later.
+    }
+
+    const updatedDomain = db.prepare('SELECT * FROM domains WHERE id = ?').get(result.lastInsertRowid)
+    res.status(201).json({ domain: updatedDomain })
   } catch {
     res.status(409).json({ error: 'Esse domínio já foi cadastrado.' })
   }
@@ -407,6 +464,7 @@ function persistDomainCheck(domainId, result) {
         registration_status = ?,
         registrar = ?,
         rdap_url = ?,
+        registration_details = ?,
         registration_error = ?
     WHERE id = ?
   `).run(
@@ -419,6 +477,7 @@ function persistDomainCheck(domainId, result) {
     result.registrationStatus,
     result.registrar,
     result.rdapUrl,
+    result.registrationDetails,
     result.registrationError,
     domainId
   )
