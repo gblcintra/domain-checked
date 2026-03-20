@@ -16,6 +16,7 @@ Aplicação full stack com React + Tailwind no front-end e Express + SQLite no b
 - Fluxo de esqueci a senha com geração de token de redefinição.
 - Cadastro e remoção de domínios por usuário.
 - Checagem manual e automática dos domínios a cada 30 segundos.
+- Consulta RDAP para estimar expiração de registro, registrador e janela de renovação.
 - Persistência local em SQLite.
 - Interface responsiva com Tailwind CSS.
 

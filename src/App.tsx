@@ -28,6 +28,59 @@ function statusClasses(status) {
   }
 }
 
+function registrationStatusClasses(status) {
+  switch (status) {
+    case 'active':
+      return 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/20'
+    case 'expiring_soon':
+      return 'bg-amber-500/15 text-amber-200 ring-1 ring-amber-400/20'
+    case 'expired':
+      return 'bg-rose-500/15 text-rose-200 ring-1 ring-rose-400/20'
+    default:
+      return 'bg-slate-800 text-slate-300 ring-1 ring-slate-700'
+  }
+}
+
+function registrationStatusLabel(status) {
+  switch (status) {
+    case 'active':
+      return 'registro ativo'
+    case 'expiring_soon':
+      return 'expira em breve'
+    case 'expired':
+      return 'registro expirado'
+    default:
+      return 'registro indefinido'
+  }
+}
+
+function formatDate(value) {
+  if (!value) {
+    return '--'
+  }
+
+  return new Date(value).toLocaleString('pt-BR')
+}
+
+function formatExpirationCountdown(value) {
+  if (!value) {
+    return 'Sem data disponível'
+  }
+
+  const diffMs = new Date(value).getTime() - Date.now()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    return `expirou há ${Math.abs(diffDays)} dia(s)`
+  }
+
+  if (diffDays === 0) {
+    return 'expira hoje'
+  }
+
+  return `expira em ${diffDays} dia(s)`
+}
+
 type RequestOptions = { token?: string; method?: string; body?: unknown }
 
 async function request(path: string, { token, method = 'GET', body }: RequestOptions = {}) {
@@ -133,7 +186,7 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
         <div>
           <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Painel de monitoramento</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Olá, {user.name}</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-400">Cadastre domínios, acompanhe o status HTTP, latência e últimos erros detectados em uma única visão.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-400">Cadastre domínios, acompanhe o status HTTP, latência, últimos erros e a expiração estimada do registro em uma única visão.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button onClick={onRefreshAll} disabled={checking} className="rounded-2xl bg-cyan-400 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-300 disabled:opacity-60">Verificar tudo</button>
@@ -207,12 +260,28 @@ function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, 
                   </div>
                 </div>
 
-                <dl className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-400/10 bg-cyan-500/5 p-4">
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationStatusClasses(domain.registration_status)}`}>{registrationStatusLabel(domain.registration_status)}</span>
+                  <div className="text-sm text-cyan-50">
+                    <p className="font-medium">Expiração do registro: {formatDate(domain.registration_expires_at)}</p>
+                    <p className="text-cyan-100/80">{formatExpirationCountdown(domain.registration_expires_at)}</p>
+                  </div>
+                </div>
+
+                <dl className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">HTTP</dt><dd className="mt-2 text-lg text-white">{domain.last_http_code ?? '--'}</dd></div>
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Latência</dt><dd className="mt-2 text-lg text-white">{domain.last_response_ms ? `${domain.last_response_ms} ms` : '--'}</dd></div>
                   <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Última checagem</dt><dd className="mt-2 text-sm text-white">{domain.last_checked_at ? new Date(domain.last_checked_at).toLocaleString('pt-BR') : 'Nunca'}</dd></div>
-                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Erro</dt><dd className="mt-2 text-sm text-white">{domain.last_error || 'Sem erros'}</dd></div>
+                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Consulta RDAP</dt><dd className="mt-2 text-sm text-white">{formatDate(domain.registration_checked_at)}</dd></div>
+                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Registrador</dt><dd className="mt-2 text-sm text-white">{domain.registrar || 'Não informado'}</dd></div>
+                  <div className="rounded-2xl bg-slate-900 p-4"><dt className="text-xs uppercase tracking-wide text-slate-500">Erro/RDAP</dt><dd className="mt-2 text-sm text-white">{domain.registration_error || domain.last_error || 'Sem erros'}</dd></div>
                 </dl>
+
+                {domain.rdap_url && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Fonte RDAP: <a className="text-cyan-300 underline underline-offset-2" href={domain.rdap_url} target="_blank" rel="noreferrer">{domain.rdap_url}</a>
+                  </p>
+                )}
               </article>
             ))}
           </div>
