@@ -78,16 +78,17 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
               disabled={!isClickable}
               className={`rounded-3xl border p-5 text-left transition ${colors.panel} ${isClickable ? 'cursor-pointer hover:scale-[1.01]' : 'cursor-default'} ${isActive ? 'ring-2 ring-cyan-400/70' : ''} disabled:opacity-100`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="flex flex-col items-start justify-between gap-3">
+
                   <p className={`text-sm ${colors.statMuted}`}>{item.label}</p>
-                  <p className={`mt-3 text-3xl font-semibold ${colors.statText}`}>{item.value}</p>
-                </div>
-                {item.filter && (
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${isActive ? 'bg-cyan-500/20 text-cyan-200' : colors.statMuted}`}>
-                    {isActive ? 'Filtro ativo' : 'Filtrar'}
-                  </span>
-                )}
+                  <p className={`flex items-end w-[100%] justify-between mt-3 text-3xl font-semibold ${colors.statText}`}>
+                    {item.value}
+                    {item.filter && (
+                      <span className={`rounded-full px-3 py-1 text-xs font-medium ${isActive ? 'bg-cyan-500/20 text-cyan-200' : colors.statMuted}`}>
+                        {isActive ? 'Filtro ativo' : 'Filtrar'}
+                      </span>
+                    )}
+                  </p>
               </div>
             </button>
           )
@@ -230,14 +231,14 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                       </dd>
                     </div>
 
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                    {/* <div className={`rounded-2xl p-4 ${colors.panel}`}>
                       <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
                         Detalhes do registro
                       </dt>
                       <dd className={`mt-2 text-sm leading-6 ${colors.statText}`}>
                         {registrationDetails(domain)}
                       </dd>
-                    </div>
+                    </div> */}
                     <div className={`rounded-2xl p-4 ${colors.panel}`}>
                       <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
                         Disponibilidade
