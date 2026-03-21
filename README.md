@@ -1,14 +1,24 @@
-# Domain Checked
+<div align="center">
+  <img src="./assets/logo.svg" alt="Domain Checked logo" width="120" height="120" />
+  <h1>Domain Checked</h1>
+  <p>Monitoramento de domínios com React, Express, SQLite e checagem contínua de disponibilidade, latência e status de registro.</p>
+
+  <p>
+    <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e" alt="Licença MIT" /></a>
+    <a href="./CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/code%20of%20conduct-Contributor%20Covenant-06b6d4" alt="Code of Conduct" /></a>
+    <a href="./SECURITY.md"><img src="https://img.shields.io/badge/security-policy-f59e0b" alt="Security Policy" /></a>
+  </p>
+</div>
+
+## Visão geral
 
 Aplicação full stack com React + Tailwind no front-end e Express + SQLite no back-end para cadastrar domínios, autenticar usuários e verificar o status dos domínios em tempo real por polling.
 
-## Requisitos
+## Exemplo da interface
 
-- **Node.js 22 LTS**. O projeto usa `better-sqlite3`, então versões muito novas do Node podem ficar sem binário pré-compilado. No Windows, o Node `25.3.0` costuma cair em build nativo e falhar durante o `yarn install`.
-- **Yarn 1.22.22**.
-- **Python 3** instalado e disponível no `PATH` apenas se você insistir em usar uma versão do Node sem binário pronto para `better-sqlite3`.
+A imagem abaixo foi adicionada ao repositório como uma ilustração inspirada no exemplo enviado para destacar a aparência do painel principal.
 
-> Recomendação: use Node 22 LTS com Yarn 1.22.22 para evitar compilar dependências nativas.
+![Exemplo do painel do Domain Checked](./docs/dashboard-preview.svg)
 
 ## Recursos
 
@@ -19,6 +29,20 @@ Aplicação full stack com React + Tailwind no front-end e Express + SQLite no b
 - Consulta RDAP para estimar expiração de registro, registrador e janela de renovação.
 - Persistência local em SQLite.
 - Interface responsiva com Tailwind CSS.
+
+## Governança do projeto
+
+- **Licença:** [MIT](./LICENSE)
+- **Code of Conduct:** [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)
+- **Security Policy:** [SECURITY.md](./SECURITY.md)
+
+## Requisitos
+
+- **Node.js 22 LTS**. O projeto usa `better-sqlite3`, então versões muito novas do Node podem ficar sem binário pré-compilado. No Windows, o Node `25.3.0` costuma cair em build nativo e falhar durante o `yarn install`.
+- **Yarn 1.22.22**.
+- **Python 3** instalado e disponível no `PATH` apenas se você insistir em usar uma versão do Node sem binário pronto para `better-sqlite3`.
+
+> Recomendação: use Node 22 LTS com Yarn 1.22.22 para evitar compilar dependências nativas.
 
 ## Como rodar
 
