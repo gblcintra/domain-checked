@@ -18,7 +18,7 @@ import {
   statusClasses
 } from '../utils/domain'
 import { themeOptions } from '../utils/theme'
-import type { Domain, DomainForm, StatItem, Theme, User } from '../types'
+import type { Domain, DomainFilter, DomainForm, StatItem, Theme, User } from '../types'
 
 const emptyDomain: DomainForm = {
   hostname: '',
@@ -37,13 +37,15 @@ type DomainDashboardProps = {
   adding: boolean
   checking: boolean
   stats: StatItem[]
+  activeFilter: DomainFilter
+  onSelectFilter: (filter: DomainFilter) => void
   onLogout: () => void
   error: string
   theme: Theme
   onToggleTheme: () => void
 }
 
-export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, onRefreshAll, adding, checking, stats, onLogout, error, theme, onToggleTheme }: DomainDashboardProps) {
+export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefreshOne, onRefreshAll, adding, checking, stats, activeFilter, onSelectFilter, onLogout, error, theme, onToggleTheme }: DomainDashboardProps) {
   const [form, setForm] = useState<DomainForm>(emptyDomain)
   const colors = themeOptions[theme]
   const detailCardClass = theme === 'light' ? 'border-slate-200/80 bg-white/85' : 'border-white/10 bg-slate-950/40'
@@ -64,12 +66,32 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
       </header>
 
       <section className="mb-8 grid gap-4 md:grid-cols-4">
-        {stats.map((item) => (
-          <div key={item.label} className={`rounded-3xl border p-5 ${colors.panel}`}>
-            <p className={`text-sm ${colors.statMuted}`}>{item.label}</p>
-            <p className={`mt-3 text-3xl font-semibold ${colors.statText}`}>{item.value}</p>
-          </div>
-        ))}
+        {stats.map((item) => {
+          const isClickable = Boolean(item.filter)
+          const isActive = item.filter === activeFilter
+
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => item.filter && onSelectFilter(item.filter)}
+              disabled={!isClickable}
+              className={`rounded-3xl border p-5 text-left transition ${colors.panel} ${isClickable ? 'cursor-pointer hover:scale-[1.01]' : 'cursor-default'} ${isActive ? 'ring-2 ring-cyan-400/70' : ''} disabled:opacity-100`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className={`text-sm ${colors.statMuted}`}>{item.label}</p>
+                  <p className={`mt-3 text-3xl font-semibold ${colors.statText}`}>{item.value}</p>
+                </div>
+                {item.filter && (
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${isActive ? 'bg-cyan-500/20 text-cyan-200' : colors.statMuted}`}>
+                    {isActive ? 'Filtro ativo' : 'Filtrar'}
+                  </span>
+                )}
+              </div>
+            </button>
+          )
+        })}
       </section>
 
       {error && <div className="mb-8 rounded-3xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">{error}</div>}
@@ -94,12 +116,15 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
         </form>
 
         <div className={`rounded-3xl border p-6 ${colors.panel}`}>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className={`text-xl font-semibold ${colors.statText}`}>Domínios monitorados</h2>
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h2 className={`text-xl font-semibold ${colors.statText}`}>Domínios monitorados</h2>
+              <p className={`mt-1 text-sm ${colors.pageText}`}>Clique em Total de domínios, Online ou Instáveis/alerta para filtrar a lista.</p>
+            </div>
             <span className={`text-sm ${colors.pageText}`}>Autenticação via JWT</span>
           </div>
           <div className="space-y-4">
-            {domains.length === 0 && <div className={`rounded-2xl border border-dashed p-8 text-center ${colors.pageText}`}>Nenhum domínio cadastrado ainda.</div>}
+            {domains.length === 0 && <div className={`rounded-2xl border border-dashed p-8 text-center ${colors.pageText}`}>Nenhum domínio encontrado para o filtro selecionado.</div>}
             {domains.map((domain) => {
               const registrationTone = registrationStatusTone(domain)
 
