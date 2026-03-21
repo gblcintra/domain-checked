@@ -1,0 +1,73 @@
+<svg width="1280" height="880" viewBox="0 0 1280 880" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="880" fill="#0F172A"/>
+  <rect x="218" y="18" width="810" height="105" rx="18" fill="#111827" stroke="#334155"/>
+  <text x="236" y="46" fill="#67E8F9" font-family="Arial, sans-serif" font-size="12" letter-spacing="3">PAINEL DE MONITORAMENTO</text>
+  <text x="235" y="72" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="22" font-weight="700">Olá, Gabr</text>
+  <text x="235" y="95" fill="#94A3B8" font-family="Arial, sans-serif" font-size="12">Cadastre domínios, acompanhe o status HTTP, latência e últimos erros em uma única visão.</text>
+  <rect x="782" y="55" width="84" height="32" rx="16" fill="#172033" stroke="#334155"/>
+  <text x="807" y="75" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Tema Dark</text>
+  <rect x="878" y="54" width="88" height="34" rx="10" fill="#22D3EE"/>
+  <text x="894" y="76" fill="#0F172A" font-family="Arial, sans-serif" font-size="12" font-weight="700">Verificar tudo</text>
+  <rect x="974" y="54" width="44" height="34" rx="10" fill="#172033" stroke="#334155"/>
+  <text x="988" y="76" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Sair</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="218" y="148" width="152" height="84" rx="16" fill="#111827" stroke="#334155"/>
+    <rect x="383" y="148" width="152" height="84" rx="16" fill="#111827" stroke="#334155"/>
+    <rect x="548" y="148" width="152" height="84" rx="16" fill="#111827" stroke="#334155"/>
+    <rect x="713" y="148" width="152" height="84" rx="16" fill="#111827" stroke="#22D3EE" stroke-width="2"/>
+    <rect x="878" y="148" width="152" height="84" rx="16" fill="#111827" stroke="#334155"/>
+    <text x="231" y="170" fill="#93C5FD" font-size="11">Total de domínios</text><text x="231" y="210" fill="#F8FAFC" font-size="16" font-weight="700">6</text>
+    <text x="396" y="170" fill="#93C5FD" font-size="11">Online</text><text x="396" y="210" fill="#F8FAFC" font-size="16" font-weight="700">2</text>
+    <text x="561" y="170" fill="#93C5FD" font-size="11">Instáveis/alerta</text><text x="561" y="210" fill="#F8FAFC" font-size="16" font-weight="700">4</text>
+    <text x="726" y="170" fill="#93C5FD" font-size="11">Disponíveis p/ registro</text><text x="726" y="210" fill="#F8FAFC" font-size="16" font-weight="700">1</text>
+    <text x="891" y="170" fill="#93C5FD" font-size="11">Latência média</text><text x="891" y="210" fill="#F8FAFC" font-size="16" font-weight="700">45 ms</text>
+  </g>
+
+  <rect x="218" y="286" width="240" height="530" rx="18" fill="#111827" stroke="#334155"/>
+  <text x="235" y="314" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="16" font-weight="700">Cadastrar domínio</text>
+  <rect x="235" y="332" width="206" height="32" rx="10" fill="#020617" stroke="#1E293B"/>
+  <text x="247" y="353" fill="#64748B" font-family="Arial, sans-serif" font-size="12">exemplo.com.br</text>
+  <rect x="235" y="376" width="206" height="32" rx="10" fill="#020617" stroke="#1E293B"/>
+  <text x="247" y="397" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">https</text>
+  <rect x="235" y="420" width="206" height="80" rx="10" fill="#020617" stroke="#1E293B"/>
+  <text x="247" y="440" fill="#64748B" font-family="Arial, sans-serif" font-size="12">Observações internas</text>
+  <rect x="235" y="516" width="206" height="32" rx="10" fill="#22D3EE"/>
+  <text x="301" y="537" fill="#0F172A" font-family="Arial, sans-serif" font-size="13" font-weight="700">Salvar domínio</text>
+
+  <rect x="474" y="286" width="554" height="530" rx="18" fill="#111827" stroke="#334155"/>
+  <text x="490" y="314" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="16" font-weight="700">Domínios monitorados</text>
+  <text x="490" y="332" fill="#93C5FD" font-family="Arial, sans-serif" font-size="11">Clique em Total de domínios, Online, Instáveis/alerta ou Disponíveis p/ registro para filtrar a lista.</text>
+  <rect x="491" y="347" width="506" height="450" rx="16" fill="#020617" stroke="#1E293B"/>
+  <text x="506" y="372" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12" font-weight="700">domainchecked.com.br</text>
+  <rect x="641" y="360" width="46" height="18" rx="9" fill="#3F1D2E"/>
+  <text x="651" y="373" fill="#FCA5A5" font-family="Arial, sans-serif" font-size="10">Offline</text>
+  <text x="506" y="392" fill="#67E8F9" font-family="Arial, sans-serif" font-size="11">https://domainchecked.com.br</text>
+  <text x="506" y="409" fill="#94A3B8" font-family="Arial, sans-serif" font-size="11">Observações internas: teste</text>
+  <rect x="506" y="429" width="476" height="88" rx="14" fill="#0B2530" stroke="#14532D"/>
+  <text x="520" y="451" fill="#BAE6FD" font-family="Arial, sans-serif" font-size="11" letter-spacing="2">OBSERVAÇÕES DE REGISTRO</text>
+  <text x="520" y="473" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Nenhum bloqueio de registro foi retornado pelo RDAP nesta consulta.</text>
+  <text x="757" y="451" fill="#BAE6FD" font-family="Arial, sans-serif" font-size="11" letter-spacing="2">EXPIRAÇÃO DO REGISTRO</text>
+  <text x="757" y="473" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Não informada</text>
+
+  <g fill="#0F172A" stroke="#111827">
+    <rect x="506" y="532" width="160" height="82" rx="12"/>
+    <rect x="672" y="532" width="160" height="82" rx="12"/>
+    <rect x="838" y="532" width="144" height="82" rx="12"/>
+    <rect x="506" y="624" width="160" height="60" rx="12"/>
+    <rect x="672" y="624" width="160" height="60" rx="12"/>
+    <rect x="838" y="624" width="144" height="60" rx="12"/>
+  </g>
+  <text x="519" y="549" fill="#64748B" font-family="Arial, sans-serif" font-size="10">HTTP</text>
+  <text x="519" y="571" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">sem resposta</text>
+  <text x="685" y="549" fill="#64748B" font-family="Arial, sans-serif" font-size="10">LATÊNCIA</text>
+  <text x="685" y="571" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">6 ms</text>
+  <text x="851" y="549" fill="#64748B" font-family="Arial, sans-serif" font-size="10">ÚLTIMA CHECAGEM</text>
+  <text x="851" y="571" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">21/03/2026, 20:28:00</text>
+  <text x="519" y="641" fill="#64748B" font-family="Arial, sans-serif" font-size="10">CONSULTA RDAP</text>
+  <text x="519" y="661" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">21/03/2026, 17:28:00</text>
+  <text x="685" y="641" fill="#64748B" font-family="Arial, sans-serif" font-size="10">TITULAR</text>
+  <text x="685" y="661" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Sem titular; domínio livre para registro</text>
+  <text x="851" y="641" fill="#64748B" font-family="Arial, sans-serif" font-size="10">REGISTRADOR</text>
+  <text x="851" y="661" fill="#F8FAFC" font-family="Arial, sans-serif" font-size="12">Não informado</text>
+</svg>
