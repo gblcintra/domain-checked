@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { AuthCard } from './components/AuthCard'
 import { DomainDashboard } from './components/DomainDashboard'
 import { THEME_STORAGE_KEY, themeOptions } from './utils/theme'
-import type { AuthForm, AuthMode, Domain, DomainForm, User } from './types'
+import type { AuthForm, AuthMode, Domain, DomainFilter, DomainForm, User } from './types'
 
 const API_BASE = '/api'
 const POLL_INTERVAL = 30000
@@ -50,6 +50,7 @@ export default function App() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [resetToken, setResetToken] = useState('')
+  const [activeFilter, setActiveFilter] = useState<DomainFilter>('all')
 
   const activeTheme = themeOptions[theme as keyof typeof themeOptions] ? theme : 'dark'
 
@@ -61,9 +62,9 @@ export default function App() {
     const measured = domains.filter((item) => item.last_response_ms).length
 
     return [
-      { label: 'Total de domínios', value: domains.length },
-      { label: 'Online', value: online },
-      { label: 'Instáveis/alerta', value: warning + offline },
+      { label: 'Total de domínios', value: domains.length, filter: 'all' },
+      { label: 'Online', value: online, filter: 'online' },
+      { label: 'Instáveis/alerta', value: warning + offline, filter: 'attention' },
       { label: 'Latência média', value: measured ? `${Math.round(avgLatency / measured)} ms` : '--' }
     ]
   }, [domains])
@@ -112,6 +113,17 @@ export default function App() {
       if (!silent) setChecking(false)
     }
   }
+
+  const filteredDomains = useMemo(() => {
+    switch (activeFilter) {
+      case 'online':
+        return domains.filter((item) => item.last_status === 'online')
+      case 'attention':
+        return domains.filter((item) => item.last_status === 'warning' || item.last_status === 'offline')
+      default:
+        return domains
+    }
+  }, [activeFilter, domains])
 
   useEffect(() => {
     if (!token || !user) return undefined
@@ -235,7 +247,7 @@ export default function App() {
         <DomainDashboard
           user={user}
           token={token}
-          domains={domains}
+          domains={filteredDomains}
           onAdd={handleAddDomain}
           onDelete={handleDeleteDomain}
           onRefreshOne={handleRefreshOne}
@@ -243,6 +255,8 @@ export default function App() {
           adding={loading}
           checking={checking}
           stats={stats}
+        activeFilter={activeFilter}
+        onSelectFilter={setActiveFilter}
           onLogout={handleLogout}
           error={error}
           theme={activeTheme as 'dark' | 'light'}

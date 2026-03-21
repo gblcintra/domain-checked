@@ -41,7 +41,10 @@ export type Domain = {
   rdap_url?: string
 }
 
+export type DomainFilter = 'all' | 'online' | 'attention'
+
 export type StatItem = {
   label: string
   value: number | string
+  filter?: DomainFilter
 }
