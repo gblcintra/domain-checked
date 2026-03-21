@@ -58,6 +58,7 @@ export default function App() {
     const online = domains.filter((item) => item.last_status === 'online').length
     const warning = domains.filter((item) => item.last_status === 'warning').length
     const offline = domains.filter((item) => item.last_status === 'offline').length
+    const available = domains.filter((item) => item.registration_availability === 'available').length
     const avgLatency = domains.filter((item) => item.last_response_ms).reduce((acc, item) => acc + (item.last_response_ms || 0), 0)
     const measured = domains.filter((item) => item.last_response_ms).length
 
@@ -65,6 +66,7 @@ export default function App() {
       { label: 'Total de domínios', value: domains.length, filter: 'all' },
       { label: 'Online', value: online, filter: 'online' },
       { label: 'Instáveis/alerta', value: warning + offline, filter: 'attention' },
+      { label: 'Disponíveis p/ registro', value: available, filter: 'available' },
       { label: 'Latência média', value: measured ? `${Math.round(avgLatency / measured)} ms` : '--' }
     ]
   }, [domains])
@@ -120,6 +122,8 @@ export default function App() {
         return domains.filter((item) => item.last_status === 'online')
       case 'attention':
         return domains.filter((item) => item.last_status === 'warning' || item.last_status === 'offline')
+      case 'available':
+        return domains.filter((item) => item.registration_availability === 'available')
       default:
         return domains
     }
@@ -255,8 +259,8 @@ export default function App() {
           adding={loading}
           checking={checking}
           stats={stats}
-        activeFilter={activeFilter}
-        onSelectFilter={setActiveFilter}
+          activeFilter={activeFilter}
+          onSelectFilter={setActiveFilter}
           onLogout={handleLogout}
           error={error}
           theme={activeTheme as 'dark' | 'light'}
