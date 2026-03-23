@@ -52,7 +52,9 @@ A imagem abaixo foi adicionada ao repositório como uma ilustração inspirada n
 4. Instale dependências com `yarn install`.
 5. Rode `yarn dev`.
 
-A API sobe em `http://localhost:3001` e o front-end em `http://localhost:5173`.
+A API sobe em `http://localhost:3001` e o front-end em `http://localhost:5173`. Por padrão ambos também ficam expostos na rede local, então você pode abrir o front-end em `http://SEU_IP_DA_REDE:5173` a partir de outro dispositivo na mesma rede.
+
+Se quiser que links enviados por e-mail apontem para o IP da sua máquina, ajuste `APP_URL` no `.env` para algo como `http://192.168.0.10:5173`.
 
 ### Configuração de e-mail para recuperação de senha
 

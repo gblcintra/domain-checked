@@ -20,6 +20,7 @@ const dbPath = path.join(dataDir, 'app.db')
 const db = new Database(dbPath)
 const app = express()
 const port = Number(process.env.PORT || 3001)
+const host = process.env.HOST || '0.0.0.0'
 const jwtSecret = process.env.JWT_SECRET || 'change-this-secret'
 const appUrl = process.env.APP_URL || 'http://localhost:5173'
 const smtpHost = process.env.SMTP_HOST || ''
@@ -824,6 +825,10 @@ app.post('/api/domains/check-all', auth, async (req, res) => {
   res.json({ domains: updated })
 })
 
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`)
+app.listen(port, host, () => {
+  const publicHost = host === '0.0.0.0' ? 'localhost' : host
+  console.log(`API listening on http://${publicHost}:${port}`)
+  if (host === '0.0.0.0') {
+    console.log(`API disponível na rede local pela porta ${port}.`)
+  }
 })
