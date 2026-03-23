@@ -203,15 +203,47 @@ function buildRecoveryEmail({ token, resetUrl, expiresAt }) {
   ].join('\r\n')
 }
 
-async function sendPasswordRecoveryEmail({ email, token, expiresAt }) {
+function getRequestAppUrl(req) {
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim()
+  const origin = String(req.headers.origin || '').trim()
+  const referer = String(req.headers.referer || '').trim()
+  const hostHeader = String(req.headers.host || '').trim()
+
+  const candidates = [
+    origin,
+    referer,
+    forwardedHost ? `${forwardedProto || req.protocol || 'http'}://${forwardedHost}` : '',
+    hostHeader ? `${forwardedProto || req.protocol || 'http'}://${hostHeader}` : '',
+    appUrl
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+
+    try {
+      const url = new URL(candidate)
+      url.pathname = '/'
+      url.search = ''
+      url.hash = ''
+      return url.toString().replace(/\/$/, '')
+    } catch {
+      continue
+    }
+  }
+
+  return 'http://localhost:5173'
+}
+
+async function sendPasswordRecoveryEmail({ email, token, expiresAt, appBaseUrl }) {
   if (!smtpHost || !smtpUser || !smtpPass) {
     throw new Error('Serviço de e-mail não configurado. Defina SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS e SMTP_FROM.')
   }
 
-  const resetUrl = `${appUrl}?resetToken=${encodeURIComponent(token)}`
+  const resetUrl = `${appBaseUrl}?resetToken=${encodeURIComponent(token)}`
   const appHost = (() => {
     try {
-      return new URL(appUrl).hostname || 'localhost'
+      return new URL(appBaseUrl).hostname || 'localhost'
     } catch {
       return 'localhost'
     }
@@ -677,7 +709,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   db.prepare('INSERT INTO reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt)
 
   try {
-    await sendPasswordRecoveryEmail({ email: user.email, token, expiresAt })
+    await sendPasswordRecoveryEmail({ email: user.email, token, expiresAt, appBaseUrl: getRequestAppUrl(req) })
   } catch (error) {
     db.prepare('DELETE FROM reset_tokens WHERE token = ?').run(token)
     const message = error instanceof Error ? error.message : 'Não foi possível enviar o e-mail de recuperação.'

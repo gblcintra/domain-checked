@@ -54,7 +54,7 @@ A imagem abaixo foi adicionada ao repositório como uma ilustração inspirada n
 
 A API sobe em `http://localhost:3001` e o front-end em `http://localhost:5173`. Por padrão ambos também ficam expostos na rede local, então você pode abrir o front-end em `http://SEU_IP_DA_REDE:5173` a partir de outro dispositivo na mesma rede.
 
-Se quiser que links enviados por e-mail apontem para o IP da sua máquina, ajuste `APP_URL` no `.env` para algo como `http://192.168.0.10:5173`.
+Os links enviados por e-mail tentam usar automaticamente a origem/host usado no navegador. Se a API estiver atrás de proxy, túnel ou outro endereço público, você ainda pode forçar isso via `APP_URL` no `.env` com algo como `http://192.168.0.10:5173`.
 
 ### Configuração de e-mail para recuperação de senha
 
