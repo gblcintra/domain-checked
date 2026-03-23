@@ -12,13 +12,12 @@ type AuthCardProps = {
   error: string
   success: string
   onModeChange: (mode: AuthMode) => void
-  resetToken: string
   onReset: () => void
   theme: Theme
   onToggleTheme: () => void
 }
 
-export function AuthCard({ mode, form, onChange, onSubmit, loading, error, success, onModeChange, resetToken, onReset, theme, onToggleTheme }: AuthCardProps) {
+export function AuthCard({ mode, form, onChange, onSubmit, loading, error, success, onModeChange, onReset, theme, onToggleTheme }: AuthCardProps) {
   const colors = themeOptions[theme]
 
   let buttonText = 'Enviar recuperação'
@@ -70,12 +69,6 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
 
         {error && <p className="rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
         {success && <p className="rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{success}</p>}
-        {resetToken && (
-          <div className="rounded-2xl bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
-            <p className="font-medium">Token gerado para redefinição:</p>
-            <p className="mt-2 break-all font-mono text-xs">{resetToken}</p>
-          </div>
-        )}
 
         <button className={`w-full rounded-2xl px-4 py-3 font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${colors.accentButton}`} disabled={loading}>
           {loading ? 'Processando...' : buttonText}
@@ -91,7 +84,7 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
       {mode === 'forgot' && (
         <div className={`mt-6 rounded-2xl border p-4 ${colors.panel}`}>
           <h2 className={`font-medium ${colors.statText}`}>Já possui um token?</h2>
-          <p className={`mt-1 text-sm ${colors.pageText}`}>Use o token gerado para definir uma nova senha.</p>
+          <p className={`mt-1 text-sm ${colors.pageText}`}>Use o token recebido por e-mail para definir uma nova senha.</p>
           <button type="button" onClick={onReset} className="mt-3 rounded-xl border border-cyan-400/40 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-400/10">
             Redefinir senha com token
           </button>

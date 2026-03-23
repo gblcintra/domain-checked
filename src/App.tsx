@@ -49,7 +49,6 @@ export default function App() {
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [resetToken, setResetToken] = useState('')
   const [activeFilter, setActiveFilter] = useState<DomainFilter>('all')
 
   const activeTheme = themeOptions[theme as keyof typeof themeOptions] ? theme : 'dark'
@@ -145,7 +144,6 @@ export default function App() {
     setLoading(true)
     setError('')
     setSuccess('')
-    setResetToken('')
 
     try {
       if (mode === 'login') {
@@ -169,7 +167,6 @@ export default function App() {
       if (mode === 'forgot') {
         const data = await request('/auth/forgot-password', { method: 'POST', body: { email: authForm.email } })
         setSuccess(data.message)
-        setResetToken(data.resetToken || '')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro de autenticação.')
@@ -179,7 +176,8 @@ export default function App() {
   }
 
   async function handleResetPassword() {
-    const tokenInput = globalThis.prompt('Cole o token de recuperação')
+    const resetTokenFromUrl = new URLSearchParams(globalThis.location.search).get('resetToken') || ''
+    const tokenInput = globalThis.prompt('Cole o token de recuperação', resetTokenFromUrl)
     const password = globalThis.prompt('Digite a nova senha')
     if (!tokenInput || !password) return
 
@@ -276,7 +274,6 @@ export default function App() {
             loading={loading}
             error={error}
             success={success}
-            resetToken={resetToken}
             onModeChange={(nextMode) => {
               setMode(nextMode)
               setError('')
