@@ -23,7 +23,7 @@ A imagem abaixo foi adicionada ao repositório como uma ilustração inspirada n
 ## Recursos
 
 - Cadastro, login e sessão com JWT.
-- Fluxo de esqueci a senha com geração de token de redefinição.
+- Fluxo de esqueci a senha com envio de token de redefinição por e-mail.
 - Cadastro e remoção de domínios por usuário.
 - Checagem manual e automática dos domínios a cada 30 segundos.
 - Consulta RDAP para estimar expiração de registro, registrador e janela de renovação.
@@ -46,13 +46,26 @@ A imagem abaixo foi adicionada ao repositório como uma ilustração inspirada n
 
 ## Como rodar
 
-1. Copie `.env.example` para `.env`.
+1. Copie `.env.example` para `.env` e preencha as variáveis SMTP para envio do token de recuperação.
 2. Se você usa `nvm`, rode `nvm use` para carregar a versão definida em `.nvmrc`.
 3. Ative o Corepack com `corepack enable` se necessário.
 4. Instale dependências com `yarn install`.
 5. Rode `yarn dev`.
 
 A API sobe em `http://localhost:3001` e o front-end em `http://localhost:5173`.
+
+### Configuração de e-mail para recuperação de senha
+
+Preencha as variáveis abaixo no arquivo `.env` para que o endpoint `/api/auth/forgot-password` envie o token de recuperação por e-mail:
+
+- `SMTP_HOST`: host do servidor SMTP.
+- `SMTP_PORT`: porta SMTP, normalmente `587` ou `465`.
+- `SMTP_SECURE`: use `true` para SSL/TLS direto, `false` para STARTTLS.
+- `SMTP_USER`: usuário/autenticação da conta de envio.
+- `SMTP_PASS`: senha ou token SMTP.
+- `SMTP_FROM`: remetente exibido no e-mail.
+
+O token de recuperação gerado pelo back-end agora usa **66 caracteres** e não é mais exibido na interface.
 
 ## Se o Corepack não conseguir baixar o Yarn
 

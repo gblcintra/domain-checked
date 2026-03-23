@@ -7,7 +7,9 @@ import jwt from 'jsonwebtoken'
 import dns from 'node:dns/promises'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
+import net from 'node:net'
 import path from 'node:path'
+import tls from 'node:tls'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -20,6 +22,12 @@ const app = express()
 const port = Number(process.env.PORT || 3001)
 const jwtSecret = process.env.JWT_SECRET || 'change-this-secret'
 const appUrl = process.env.APP_URL || 'http://localhost:5173'
+const smtpHost = process.env.SMTP_HOST || ''
+const smtpPort = Number(process.env.SMTP_PORT || 587)
+const smtpUser = process.env.SMTP_USER || ''
+const smtpPass = process.env.SMTP_PASS || ''
+const smtpFrom = process.env.SMTP_FROM || smtpUser || 'no-reply@domainchecked.local'
+const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true'
 
 app.use(cors())
 app.use(express.json())
@@ -105,6 +113,158 @@ function auth(req, res, next) {
     next()
   } catch {
     return res.status(401).json({ error: 'Token inválido.' })
+  }
+}
+
+function createSmtpConnection() {
+  return new Promise((resolve, reject) => {
+    const socket = smtpSecure
+      ? tls.connect({ host: smtpHost, port: smtpPort, servername: smtpHost })
+      : net.createConnection({ host: smtpHost, port: smtpPort })
+
+    const handleError = (error) => reject(error)
+    socket.once('error', handleError)
+    socket.once(smtpSecure ? 'secureConnect' : 'connect', () => {
+      socket.removeListener('error', handleError)
+      resolve(socket)
+    })
+  })
+}
+
+async function readSmtpResponse(socket) {
+  return new Promise((resolve, reject) => {
+    let buffer = ''
+
+    const cleanup = () => {
+      socket.off('data', onData)
+      socket.off('error', onError)
+      socket.off('close', onClose)
+    }
+
+    const onError = (error) => {
+      cleanup()
+      reject(error)
+    }
+
+    const onClose = () => {
+      cleanup()
+      reject(new Error('Conexão SMTP encerrada inesperadamente.'))
+    }
+
+    const onData = (chunk) => {
+      buffer += chunk.toString('utf8')
+      const lines = buffer.split(/\r?\n/).filter(Boolean)
+      const lastLine = lines.at(-1)
+
+      if (!lastLine || !/^\d{3}[\s-]/.test(lastLine)) {
+        return
+      }
+
+      if (lastLine[3] === '-') {
+        return
+      }
+
+      cleanup()
+      resolve({ code: Number(lastLine.slice(0, 3)), message: buffer.trim() })
+    }
+
+    socket.on('data', onData)
+    socket.on('error', onError)
+    socket.on('close', onClose)
+  })
+}
+
+async function sendSmtpCommand(socket, command, expectedCodes) {
+  if (command) {
+    socket.write(`${command}\r\n`)
+  }
+
+  const response = await readSmtpResponse(socket)
+  if (!expectedCodes.includes(response.code)) {
+    throw new Error(`SMTP ${response.code}: ${response.message}`)
+  }
+
+  return response
+}
+
+function buildRecoveryEmail({ token, resetUrl, expiresAt }) {
+  return [
+    'Olá,',
+    '',
+    'Recebemos uma solicitação para redefinir sua senha no Domain Checked.',
+    `Seu token de recuperação é: ${token}`,
+    `Este token expira em: ${expiresAt} UTC`,
+    '',
+    'Se preferir, abra o link abaixo para preencher o token no app:',
+    resetUrl,
+    '',
+    'Se você não solicitou a redefinição, ignore esta mensagem.'
+  ].join('\r\n')
+}
+
+async function sendPasswordRecoveryEmail({ email, token, expiresAt }) {
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    throw new Error('Serviço de e-mail não configurado. Defina SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS e SMTP_FROM.')
+  }
+
+  const resetUrl = `${appUrl}?resetToken=${encodeURIComponent(token)}`
+  const appHost = (() => {
+    try {
+      return new URL(appUrl).hostname || 'localhost'
+    } catch {
+      return 'localhost'
+    }
+  })()
+  const expirationDate = new Date(expiresAt).toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+    timeZone: 'UTC'
+  })
+  const emailBody = buildRecoveryEmail({ token, resetUrl, expiresAt: expirationDate })
+  let socket = await createSmtpConnection()
+
+  try {
+    await sendSmtpCommand(socket, '', [220])
+    await sendSmtpCommand(socket, `EHLO ${appHost}`, [250])
+
+    if (!smtpSecure) {
+      try {
+        await sendSmtpCommand(socket, 'STARTTLS', [220])
+        const upgradedSocket = await new Promise((resolve, reject) => {
+          const tlsSocket = tls.connect({ socket, servername: smtpHost }, () => resolve(tlsSocket))
+          tlsSocket.once('error', reject)
+        })
+        socket.removeAllListeners()
+        socket.destroy()
+        socket = upgradedSocket
+        await sendSmtpCommand(socket, `EHLO ${appHost}`, [250])
+      } catch {
+        // servidor sem STARTTLS; segue com a conexão atual
+      }
+    }
+
+    await sendSmtpCommand(socket, 'AUTH LOGIN', [334])
+    await sendSmtpCommand(socket, Buffer.from(smtpUser).toString('base64'), [334])
+    await sendSmtpCommand(socket, Buffer.from(smtpPass).toString('base64'), [235])
+    await sendSmtpCommand(socket, `MAIL FROM:<${smtpFrom}>`, [250])
+    await sendSmtpCommand(socket, `RCPT TO:<${email}>`, [250, 251])
+    await sendSmtpCommand(socket, 'DATA', [354])
+
+    const message = [
+      `From: ${smtpFrom}`,
+      `To: ${email}`,
+      'Subject: Token de recuperação de senha',
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=UTF-8',
+      '',
+      emailBody.replace(/\n\.\r?\n/g, '\n..\n'),
+      '.'
+    ].join('\r\n')
+
+    await sendSmtpCommand(socket, message, [250])
+    await sendSmtpCommand(socket, 'QUIT', [221])
+  } finally {
+    socket.end()
   }
 }
 
@@ -502,7 +662,7 @@ app.post('/api/auth/login', (req, res) => {
   return res.json({ token: signToken(safeUser), user: safeUser })
 })
 
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   const { email } = req.body
   const user = db.prepare('SELECT id, email FROM users WHERE email = ?').get(email?.toLowerCase())
 
@@ -510,15 +670,21 @@ app.post('/api/auth/forgot-password', (req, res) => {
     return res.json({ message: 'Se o e-mail existir, enviaremos instruções.' })
   }
 
-  const token = crypto.randomBytes(24).toString('hex')
+  const token = crypto.randomBytes(33).toString('hex')
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30).toISOString()
 
   db.prepare('INSERT INTO reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt)
 
+  try {
+    await sendPasswordRecoveryEmail({ email: user.email, token, expiresAt })
+  } catch (error) {
+    db.prepare('DELETE FROM reset_tokens WHERE token = ?').run(token)
+    const message = error instanceof Error ? error.message : 'Não foi possível enviar o e-mail de recuperação.'
+    return res.status(500).json({ error: message })
+  }
+
   return res.json({
-    message: 'Token de redefinição criado com sucesso.',
-    resetToken: token,
-    resetUrl: `${appUrl}?resetToken=${token}`
+    message: 'Se o e-mail existir, enviaremos o token de recuperação por e-mail.'
   })
 })
 
@@ -526,6 +692,10 @@ app.post('/api/auth/reset-password', (req, res) => {
   const { token, password } = req.body
   if (!token || !password) {
     return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' })
+  }
+
+  if (String(token).length > 66) {
+    return res.status(400).json({ error: 'O token de recuperação deve ter no máximo 66 caracteres.' })
   }
 
   const reset = db
