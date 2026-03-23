@@ -97,7 +97,7 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
 
       {error && <div className="mb-8 rounded-3xl border border-rose-400/20 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">{error}</div>}
 
-      <section className="mb-8 grid gap-6 lg:grid-cols-[360px,1fr]">
+      <section className="mb-8 grid gap-6 lg:grid-cols-[360px,1fr] justify-center">
         <form onSubmit={(event) => {
           event.preventDefault()
           onAdd(form, () => setForm(emptyDomain))
@@ -126,9 +126,10 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
           </div>
           <div className="space-y-4">
             {domains.length === 0 && <div className={`rounded-2xl border border-dashed p-8 text-center ${colors.pageText}`}>Nenhum domínio encontrado para o filtro selecionado.</div>}
-            {domains.map((domain) => {
+            {domains.map((domain, index) => {
+              if (index >= 2) return 
               const registrationTone = registrationStatusTone(domain)
-
+              
               return (
                 <article key={domain.id} className={`rounded-3xl border p-5 ${colors.panelMuted}`}>
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -140,9 +141,9 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         </span>
                       </div>
 
-                      <p className={`mt-2 text-sm ${colors.pageText}`}>
+                      <p >
                         {domain.protocol}://{domain.hostname}
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>
+                        <span >
                           {registrationAvailabilityLabel(domain)}
                         </span>
                       </p>
@@ -239,7 +240,7 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         {registrationDetails(domain)}
                       </dd>
                     </div> */}
-                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
+                    {/* <div className={`rounded-2xl p-4 ${colors.panel}`}>
                       <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
                         Disponibilidade
                       </dt>
@@ -250,14 +251,14 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         {registrationAvailabilityDescription(domain)}
                       </dd>
 
-                    </div>
+                    </div> */}
                   </dl>
 
-                  {domain.rdap_url && (
+                  {/* {domain.rdap_url && (
                     <p className={`mt-3 text-xs ${colors.infoText}`}>
                       Fonte da consulta: <a className={`underline underline-offset-2 ${colors.link}`} href={domain.rdap_url} target="_blank" rel="noreferrer">{domain.rdap_url}</a>
                     </p>
-                  )}
+                  )} */}
                 </article>
               )
             })}
