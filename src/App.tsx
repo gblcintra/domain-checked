@@ -5,7 +5,7 @@ import { DomainDashboard } from './components/DomainDashboard'
 import { THEME_STORAGE_KEY, themeOptions } from './utils/theme'
 import type { AuthForm, AuthMode, Domain, DomainFilter, DomainForm, User } from './types'
 
-const API_BASE = '/api'
+const API_BASE = String(import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
 const POLL_INTERVAL = 30000
 
 const emptyAuth: AuthForm = {
