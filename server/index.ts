@@ -447,9 +447,9 @@ async function lookupRegistration(domain: { hostname: string }) {
     registrationStatus: 'unknown',
     registrationAvailability: 'unknown',
     registrar: null,
-    registrant: null,
+    registrant: 'Titular não informado no RDAP',
     rdapUrl: whoisLookupUrl,
-    registrationDetails: null,
+    registrationDetails: 'A consulta RDAP não retornou dados suficientes para identificar o titular.',
     registrationError: `${lastError} Consulte manualmente em ${whoisLookupUrl}`,
     lastChangedAt: null
   }
