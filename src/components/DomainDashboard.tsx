@@ -126,8 +126,8 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
           </div>
           <div className="space-y-4">
             {domains.length === 0 && <div className={`rounded-2xl border border-dashed p-8 text-center ${colors.pageText}`}>Nenhum domínio encontrado para o filtro selecionado.</div>}
-            {domains.map((domain, index) => {
-              if (index >= 2) return 
+            {domains.map((domain,) => {
+
               const registrationTone = registrationStatusTone(domain)
               
               return (
@@ -141,9 +141,9 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         </span>
                       </div>
 
-                      <p >
+                      <p className={`mt-2 text-sm ${colors.pageText}`}>
                         {domain.protocol}://{domain.hostname}
-                        <span >
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wide ${registrationAvailabilityClasses(domain)}`}>
                           {registrationAvailabilityLabel(domain)}
                         </span>
                       </p>
@@ -240,7 +240,8 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         {registrationDetails(domain)}
                       </dd>
                     </div> */}
-                    {/* <div className={`rounded-2xl p-4 ${colors.panel}`}>
+
+                    <div className={`rounded-2xl p-4 ${colors.panel}`}>
                       <dt className={`text-xs uppercase tracking-wide ${colors.statMuted}`}>
                         Disponibilidade
                       </dt>
@@ -251,14 +252,14 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
                         {registrationAvailabilityDescription(domain)}
                       </dd>
 
-                    </div> */}
+                    </div>
                   </dl>
 
-                  {/* {domain.rdap_url && (
+                  {domain.rdap_url && (
                     <p className={`mt-3 text-xs ${colors.infoText}`}>
                       Fonte da consulta: <a className={`underline underline-offset-2 ${colors.link}`} href={domain.rdap_url} target="_blank" rel="noreferrer">{domain.rdap_url}</a>
                     </p>
-                  )} */}
+                  )}
                 </article>
               )
             })}
