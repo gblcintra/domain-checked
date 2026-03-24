@@ -358,7 +358,7 @@ function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
   const registrantEntity = getEntityByRole(payload.entities, 'registrant')
   const checkedAt = new Date().toISOString()
   const registrar = getEntityName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
-  const registrant = getEntityName(registrantEntity)
+  const registrant = getEntityName(registrantEntity) || 'Titular não informado no RDAP'
   const registrationAvailability = 'registered'
   const registrationDetails = formatRegistrationDetails(payload, {
     registrar,
@@ -437,7 +437,7 @@ async function lookupRegistration(domain: { hostname: string }) {
     }
   }
 
-  if (hadNotFoundResponse && !hadLookupFailure) {
+  if (hadNotFoundResponse) {
     return buildNotFoundResult(whoisLookupUrl)
   }
 
@@ -447,9 +447,9 @@ async function lookupRegistration(domain: { hostname: string }) {
     registrationStatus: 'unknown',
     registrationAvailability: 'unknown',
     registrar: null,
-    registrant: null,
+    registrant: 'Titular não informado no RDAP',
     rdapUrl: whoisLookupUrl,
-    registrationDetails: null,
+    registrationDetails: 'A consulta RDAP não retornou dados suficientes para identificar o titular.',
     registrationError: `${lastError} Consulte manualmente em ${whoisLookupUrl}`,
     lastChangedAt: null
   }

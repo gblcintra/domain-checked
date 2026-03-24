@@ -73,7 +73,7 @@ export function registrationAvailabilityLabel(domain: Domain) {
     case 'available':
       return 'Disponível para registro'
     default:
-      if (domain.registration_checked_at) return 'Erro no retorno da disponibilidade (RDAP)'
+      if (domain.registration_checked_at) return 'Disponibilidade não informada pelo RDAP'
       return 'Aguardando consulta'
   }
 }
@@ -156,7 +156,7 @@ export function registrationExpirationLabel(domain: Domain) {
 export function registrationOwnerLabel(domain: Domain) {
   if (domain.registrant) return domain.registrant
   if (domain.registration_availability === 'available') return 'Sem titular: domínio livre para registro'
-  if (domain.registration_checked_at) return 'Erro no retorno do titular (RDAP)'
+  if (domain.registration_checked_at) return 'Titular não informado no RDAP'
   return 'Aguardando consulta'
 }
 
