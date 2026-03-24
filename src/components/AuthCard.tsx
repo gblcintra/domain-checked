@@ -55,7 +55,7 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
         {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
           <input
             className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
-            placeholder="voce@empresa.com"
+            placeholder="Digite seu email"
             type="email"
             value={form.email}
             onChange={(event) => onChange('email', event.target.value)}
