@@ -67,7 +67,7 @@ Preencha as variáveis abaixo no arquivo `.env` para que o endpoint `/api/auth/f
 - `SMTP_PASS`: senha ou token SMTP.
 - `SMTP_FROM`: remetente exibido no e-mail.
 
-O token de recuperação gerado pelo back-end agora usa **66 caracteres** e não é mais exibido na interface.
+O token de recuperação gerado pelo back-end agora usa **6 números** e não é mais exibido na interface.
 
 ## Se o Corepack não conseguir baixar o Yarn
 

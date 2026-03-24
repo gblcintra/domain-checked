@@ -5,7 +5,6 @@ import Database from 'better-sqlite3'
 import express from 'express'
 import jwt from 'jsonwebtoken'
 import dns from 'node:dns/promises'
-import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -124,6 +123,10 @@ function buildRecoveryEmail({ token, expiresAt }) {
     '',
     'Se você não solicitou a redefinição, ignore esta mensagem.'
   ].join('\r\n')
+}
+
+function generateRecoveryToken() {
+  return String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')
 }
 
 async function sendPasswordRecoveryEmail({ email, token, expiresAt }) {
@@ -563,7 +566,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     return res.json({ message: 'Se o e-mail existir, enviaremos instruções.' })
   }
 
-  const token = crypto.randomBytes(33).toString('hex')
+  const token = generateRecoveryToken()
   const expiresAt = new Date(Date.now() + 1000 * 60 * 30).toISOString()
 
   db.prepare('INSERT INTO reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt)
@@ -587,8 +590,8 @@ app.post('/api/auth/reset-password', (req, res) => {
     return res.status(400).json({ error: 'Token e nova senha são obrigatórios.' })
   }
 
-  if (String(token).length > 66) {
-    return res.status(400).json({ error: 'O token de recuperação deve ter no máximo 66 caracteres.' })
+  if (!/^\d{6}$/.test(String(token))) {
+    return res.status(400).json({ error: 'O token de recuperação deve ter exatamente 6 números.' })
   }
 
   const reset = db
