@@ -16,15 +16,47 @@ const emptyAuth: AuthForm = {
 
 type RequestOptions = { token?: string; method?: string; body?: unknown }
 
+function getApiBaseCandidates() {
+  const candidates = [API_BASE]
+  const hostname = globalThis.location?.hostname
+  const protocol = globalThis.location?.protocol
+
+  if (hostname && protocol) {
+    const directApi = `${protocol}//${hostname}:3001/api`
+    if (!candidates.includes(directApi)) {
+      candidates.push(directApi)
+    }
+  }
+
+  return candidates
+}
+
 async function request(path: string, { token, method = 'GET', body }: RequestOptions = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
-    },
-    ...(body ? { body: JSON.stringify(body) } : {})
-  })
+  const apiBases = getApiBaseCandidates()
+  let response: Response | null = null
+  let lastNetworkError: Error | null = null
+
+  for (const apiBase of apiBases) {
+    try {
+      response = await fetch(`${apiBase}${path}`, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        ...(body ? { body: JSON.stringify(body) } : {})
+      })
+      break
+    } catch (error) {
+      lastNetworkError = error instanceof Error ? error : new Error('Falha de rede ao conectar na API.')
+    }
+  }
+
+  if (!response) {
+    throw new Error(
+      `Não foi possível conectar na API. Verifique se o backend está ativo na porta 3001 e acessível pelo IP desta máquina. (${lastNetworkError?.message || 'Erro de rede'})`
+    )
+  }
 
   if (response.status === 204) {
     return null
