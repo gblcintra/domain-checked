@@ -41,7 +41,7 @@ export type Domain = {
   rdap_url?: string
 }
 
-export type DomainFilter = 'all' | 'online' | 'attention' | 'available'
+export type DomainFilter = 'all' | 'online' | 'warning' | 'offline' | 'available'
 
 export type StatItem = {
   label: string
