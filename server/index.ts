@@ -407,6 +407,7 @@ async function lookupRegistration(domain: { hostname: string }) {
   const whoisLookupUrl = getWhoisLookupUrl(domain.hostname)
 
   let lastError = 'Não foi possível consultar o RDAP.'
+  let hadNotFoundResponse = false
 
   for (const candidate of rdapCandidates) {
     try {
@@ -417,7 +418,9 @@ async function lookupRegistration(domain: { hostname: string }) {
 
       if (!response.ok) {
         if (response.status === 404) {
-          return buildNotFoundResult(whoisLookupUrl)
+          hadNotFoundResponse = true
+          lastError = 'RDAP retornou 404 para este servidor de consulta.'
+          continue
         }
 
         lastError = `RDAP retornou HTTP ${response.status}.`
@@ -429,6 +432,10 @@ async function lookupRegistration(domain: { hostname: string }) {
     } catch (error) {
       lastError = error.message
     }
+  }
+
+  if (hadNotFoundResponse) {
+    return buildNotFoundResult(whoisLookupUrl)
   }
 
   return {
