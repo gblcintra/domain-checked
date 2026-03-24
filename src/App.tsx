@@ -96,8 +96,9 @@ export default function App() {
     return [
       { label: 'Total de domínios', value: domains.length, filter: 'all' },
       { label: 'Online', value: online, filter: 'online' },
-      { label: 'Instáveis/alerta', value: warning + offline, filter: 'attention' },
-      { label: 'Disponíveis p/ registro', value: available, filter: 'available' },
+      { label: 'Warning', value: warning, filter: 'warning' },
+      { label: 'Offline', value: offline, filter: 'offline' },
+      { label: 'Disponível para registro', value: available, filter: 'available' },
       { label: 'Latência média', value: measured ? `${Math.round(avgLatency / measured)} ms` : '--' }
     ]
   }, [domains])
@@ -151,8 +152,10 @@ export default function App() {
     switch (activeFilter) {
       case 'online':
         return domains.filter((item) => item.last_status === 'online')
-      case 'attention':
-        return domains.filter((item) => item.last_status === 'warning' || item.last_status === 'offline')
+      case 'warning':
+        return domains.filter((item) => item.last_status === 'warning')
+      case 'offline':
+        return domains.filter((item) => item.last_status === 'offline')
       case 'available':
         return domains.filter((item) => item.registration_availability === 'available')
       default:

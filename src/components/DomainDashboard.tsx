@@ -65,7 +65,7 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
         </div>
       </header>
 
-      <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         {stats.map((item) => {
           const isClickable = Boolean(item.filter)
           const isActive = item.filter === activeFilter
@@ -120,7 +120,7 @@ export function DomainDashboard({ user, token, domains, onAdd, onDelete, onRefre
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h2 className={`text-xl font-semibold ${colors.statText}`}>Domínios monitorados</h2>
-              <p className={`mt-1 text-sm ${colors.pageText}`}>Clique em Total de domínios, Online, Instáveis/alerta ou Disponíveis p/ registro para filtrar a lista.</p>
+              <p className={`mt-1 text-sm ${colors.pageText}`}>Clique em Total de domínios, Online, Warning, Offline ou Disponível para registro para filtrar a lista.</p>
             </div>
             <span className={`text-sm ${colors.pageText}`}>Autenticação via JWT</span>
           </div>
