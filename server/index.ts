@@ -7,9 +7,7 @@ import jwt from 'jsonwebtoken'
 import dns from 'node:dns/promises'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
-import net from 'node:net'
 import path from 'node:path'
-import tls from 'node:tls'
 import { fileURLToPath } from 'node:url'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -23,12 +21,10 @@ const port = Number(process.env.PORT || 3001)
 const host = process.env.HOST || '0.0.0.0'
 const jwtSecret = process.env.JWT_SECRET || 'change-this-secret'
 const appUrl = process.env.APP_URL || 'http://localhost:5173'
-const smtpHost = process.env.SMTP_HOST || ''
-const smtpPort = Number(process.env.SMTP_PORT || 587)
-const smtpUser = process.env.SMTP_USER || ''
-const smtpPass = process.env.SMTP_PASS || ''
-const smtpFrom = process.env.SMTP_FROM || smtpUser || 'no-reply@domainchecked.local'
-const smtpSecure = String(process.env.SMTP_SECURE || 'false').toLowerCase() === 'true'
+const emailProvider = String(process.env.EMAIL_PROVIDER || 'resend').trim().toLowerCase()
+const resendApiKey = process.env.RESEND_API_KEY || ''
+const emailFrom = process.env.EMAIL_FROM || 'Auth <auth@send.seudominio.com.br>'
+const emailSubject = process.env.EMAIL_SUBJECT || 'Token de recuperação de senha'
 
 app.use(cors())
 app.use(express.json())
@@ -117,76 +113,6 @@ function auth(req, res, next) {
   }
 }
 
-function createSmtpConnection() {
-  return new Promise((resolve, reject) => {
-    const socket = smtpSecure
-      ? tls.connect({ host: smtpHost, port: smtpPort, servername: smtpHost })
-      : net.createConnection({ host: smtpHost, port: smtpPort })
-
-    const handleError = (error) => reject(error)
-    socket.once('error', handleError)
-    socket.once(smtpSecure ? 'secureConnect' : 'connect', () => {
-      socket.removeListener('error', handleError)
-      resolve(socket)
-    })
-  })
-}
-
-async function readSmtpResponse(socket) {
-  return new Promise((resolve, reject) => {
-    let buffer = ''
-
-    const cleanup = () => {
-      socket.off('data', onData)
-      socket.off('error', onError)
-      socket.off('close', onClose)
-    }
-
-    const onError = (error) => {
-      cleanup()
-      reject(error)
-    }
-
-    const onClose = () => {
-      cleanup()
-      reject(new Error('Conexão SMTP encerrada inesperadamente.'))
-    }
-
-    const onData = (chunk) => {
-      buffer += chunk.toString('utf8')
-      const lines = buffer.split(/\r?\n/).filter(Boolean)
-      const lastLine = lines.at(-1)
-
-      if (!lastLine || !/^\d{3}[\s-]/.test(lastLine)) {
-        return
-      }
-
-      if (lastLine[3] === '-') {
-        return
-      }
-
-      cleanup()
-      resolve({ code: Number(lastLine.slice(0, 3)), message: buffer.trim() })
-    }
-
-    socket.on('data', onData)
-    socket.on('error', onError)
-    socket.on('close', onClose)
-  })
-}
-
-async function sendSmtpCommand(socket, command, expectedCodes) {
-  if (command) {
-    socket.write(`${command}\r\n`)
-  }
-
-  const response = await readSmtpResponse(socket)
-  if (!expectedCodes.includes(response.code)) {
-    throw new Error(`SMTP ${response.code}: ${response.message}`)
-  }
-
-  return response
-}
 
 function buildRecoveryEmail({ token, resetUrl, expiresAt }) {
   return [
@@ -235,69 +161,40 @@ function getRequestAppUrl(req) {
   return 'http://localhost:5173'
 }
 
+
 async function sendPasswordRecoveryEmail({ email, token, expiresAt, appBaseUrl }) {
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    throw new Error('Serviço de e-mail não configurado. Defina SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS e SMTP_FROM.')
+  if (emailProvider !== 'resend') {
+    throw new Error('Provedor de e-mail não suportado. Defina EMAIL_PROVIDER=resend.')
+  }
+
+  if (!resendApiKey || !emailFrom) {
+    throw new Error('Serviço de e-mail não configurado. Defina RESEND_API_KEY e EMAIL_FROM.')
   }
 
   const resetUrl = `${appBaseUrl}?resetToken=${encodeURIComponent(token)}`
-  const appHost = (() => {
-    try {
-      return new URL(appBaseUrl).hostname || 'localhost'
-    } catch {
-      return 'localhost'
-    }
-  })()
   const expirationDate = new Date(expiresAt).toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short',
     timeZone: 'UTC'
   })
   const emailBody = buildRecoveryEmail({ token, resetUrl, expiresAt: expirationDate })
-  let socket = await createSmtpConnection()
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: emailFrom,
+      to: [email],
+      subject: emailSubject,
+      text: emailBody
+    })
+  })
 
-  try {
-    await sendSmtpCommand(socket, '', [220])
-    await sendSmtpCommand(socket, `EHLO ${appHost}`, [250])
-
-    if (!smtpSecure) {
-      try {
-        await sendSmtpCommand(socket, 'STARTTLS', [220])
-        const upgradedSocket = await new Promise((resolve, reject) => {
-          const tlsSocket = tls.connect({ socket, servername: smtpHost }, () => resolve(tlsSocket))
-          tlsSocket.once('error', reject)
-        })
-        socket.removeAllListeners()
-        socket.destroy()
-        socket = upgradedSocket
-        await sendSmtpCommand(socket, `EHLO ${appHost}`, [250])
-      } catch {
-        // servidor sem STARTTLS; segue com a conexão atual
-      }
-    }
-
-    await sendSmtpCommand(socket, 'AUTH LOGIN', [334])
-    await sendSmtpCommand(socket, Buffer.from(smtpUser).toString('base64'), [334])
-    await sendSmtpCommand(socket, Buffer.from(smtpPass).toString('base64'), [235])
-    await sendSmtpCommand(socket, `MAIL FROM:<${smtpFrom}>`, [250])
-    await sendSmtpCommand(socket, `RCPT TO:<${email}>`, [250, 251])
-    await sendSmtpCommand(socket, 'DATA', [354])
-
-    const message = [
-      `From: ${smtpFrom}`,
-      `To: ${email}`,
-      'Subject: Token de recuperação de senha',
-      'MIME-Version: 1.0',
-      'Content-Type: text/plain; charset=UTF-8',
-      '',
-      emailBody.replace(/\n\.\r?\n/g, '\n..\n'),
-      '.'
-    ].join('\r\n')
-
-    await sendSmtpCommand(socket, message, [250])
-    await sendSmtpCommand(socket, 'QUIT', [221])
-  } finally {
-    socket.end()
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`Resend ${response.status}: ${errorText || 'Falha ao enviar e-mail.'}`)
   }
 }
 
