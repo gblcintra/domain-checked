@@ -114,7 +114,7 @@ function auth(req, res, next) {
 }
 
 
-function buildRecoveryEmail({ token, resetUrl, expiresAt }) {
+function buildRecoveryEmail({ token, expiresAt }) {
   return [
     'Olá,',
     '',
@@ -122,47 +122,11 @@ function buildRecoveryEmail({ token, resetUrl, expiresAt }) {
     `Seu token de recuperação é: ${token}`,
     `Este token expira em: ${expiresAt} UTC`,
     '',
-    'Se preferir, abra o link abaixo para preencher o token no app:',
-    resetUrl,
-    '',
     'Se você não solicitou a redefinição, ignore esta mensagem.'
   ].join('\r\n')
 }
 
-function getRequestAppUrl(req) {
-  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim()
-  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim()
-  const origin = String(req.headers.origin || '').trim()
-  const referer = String(req.headers.referer || '').trim()
-  const hostHeader = String(req.headers.host || '').trim()
-
-  const candidates = [
-    origin,
-    referer,
-    forwardedHost ? `${forwardedProto || req.protocol || 'http'}://${forwardedHost}` : '',
-    hostHeader ? `${forwardedProto || req.protocol || 'http'}://${hostHeader}` : '',
-    appUrl
-  ]
-
-  for (const candidate of candidates) {
-    if (!candidate) continue
-
-    try {
-      const url = new URL(candidate)
-      url.pathname = '/'
-      url.search = ''
-      url.hash = ''
-      return url.toString().replace(/\/$/, '')
-    } catch {
-      continue
-    }
-  }
-
-  return 'http://localhost:5173'
-}
-
-
-async function sendPasswordRecoveryEmail({ email, token, expiresAt, appBaseUrl }) {
+async function sendPasswordRecoveryEmail({ email, token, expiresAt }) {
   if (emailProvider !== 'resend') {
     throw new Error('Provedor de e-mail não suportado. Defina EMAIL_PROVIDER=resend.')
   }
@@ -171,13 +135,12 @@ async function sendPasswordRecoveryEmail({ email, token, expiresAt, appBaseUrl }
     throw new Error('Serviço de e-mail não configurado. Defina RESEND_API_KEY e EMAIL_FROM.')
   }
 
-  const resetUrl = `${appBaseUrl}?resetToken=${encodeURIComponent(token)}`
   const expirationDate = new Date(expiresAt).toLocaleString('pt-BR', {
     dateStyle: 'short',
     timeStyle: 'short',
     timeZone: 'UTC'
   })
-  const emailBody = buildRecoveryEmail({ token, resetUrl, expiresAt: expirationDate })
+  const emailBody = buildRecoveryEmail({ token, expiresAt: expirationDate })
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
@@ -606,7 +569,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   db.prepare('INSERT INTO reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)').run(user.id, token, expiresAt)
 
   try {
-    await sendPasswordRecoveryEmail({ email: user.email, token, expiresAt, appBaseUrl: getRequestAppUrl(req) })
+    await sendPasswordRecoveryEmail({ email: user.email, token, expiresAt })
   } catch (error) {
     db.prepare('DELETE FROM reset_tokens WHERE token = ?').run(token)
     const message = error instanceof Error ? error.message : 'Não foi possível enviar o e-mail de recuperação.'
