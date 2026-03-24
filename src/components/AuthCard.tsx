@@ -23,6 +23,7 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
   let buttonText = 'Enviar recuperação'
   if (mode === 'login') buttonText = 'Entrar'
   if (mode === 'register') buttonText = 'Cadastrar'
+  if (mode === 'reset') buttonText = 'Salvar nova senha'
 
   return (
     <div className={`mx-auto w-full max-w-md rounded-3xl border p-8 shadow-2xl backdrop-blur ${colors.card}`}>
@@ -33,6 +34,7 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
             {mode === 'login' && 'Entrar na plataforma'}
             {mode === 'register' && 'Criar conta segura'}
             {mode === 'forgot' && 'Recuperar senha'}
+            {mode === 'reset' && 'Redefinir com token'}
           </h1>
           <p className={`mt-2 text-sm ${colors.pageText}`}>
             Monitore domínios em tempo real, com histórico do último status e autenticação simples.
@@ -50,14 +52,16 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
             onChange={(event) => onChange('name', event.target.value)}
           />
         )}
-        <input
-          className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
-          placeholder="voce@empresa.com"
-          type="email"
-          value={form.email}
-          onChange={(event) => onChange('email', event.target.value)}
-        />
-        {mode !== 'forgot' && (
+        {(mode === 'login' || mode === 'register' || mode === 'forgot') && (
+          <input
+            className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
+            placeholder="voce@empresa.com"
+            type="email"
+            value={form.email}
+            onChange={(event) => onChange('email', event.target.value)}
+          />
+        )}
+        {(mode === 'login' || mode === 'register') && (
           <input
             className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
             placeholder={mode === 'register' ? 'Crie uma senha forte' : 'Digite sua senha'}
@@ -65,6 +69,25 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
             value={form.password}
             onChange={(event) => onChange('password', event.target.value)}
           />
+        )}
+        {mode === 'reset' && (
+          <>
+            <input
+              className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
+              placeholder="Token de 6 dígitos"
+              inputMode="numeric"
+              maxLength={6}
+              value={form.name}
+              onChange={(event) => onChange('name', event.target.value.replace(/\D/g, ''))}
+            />
+            <input
+              className={`w-full rounded-2xl border px-4 py-3 outline-none ${colors.input}`}
+              placeholder="Digite sua nova senha"
+              type="password"
+              value={form.password}
+              onChange={(event) => onChange('password', event.target.value)}
+            />
+          </>
         )}
 
         {error && <p className="rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>}
@@ -88,6 +111,14 @@ export function AuthCard({ mode, form, onChange, onSubmit, loading, error, succe
           <button type="button" onClick={onReset} className="mt-3 rounded-xl border border-cyan-400/40 px-4 py-2 text-sm text-cyan-200 hover:bg-cyan-400/10">
             Redefinir senha com token
           </button>
+        </div>
+      )}
+      {mode === 'reset' && (
+        <div className={`mt-6 rounded-2xl border p-4 ${colors.panel}`}>
+          <h2 className={`font-medium ${colors.statText}`}>Fluxo seguro de recuperação</h2>
+          <p className={`mt-1 text-sm ${colors.pageText}`}>
+            Se o e-mail estiver cadastrado no banco, o token já foi enviado. Informe o código e escolha uma nova senha.
+          </p>
         </div>
       )}
     </div>
