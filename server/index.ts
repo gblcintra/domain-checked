@@ -358,7 +358,7 @@ function parseRdapResponse(payload, domain, candidate, whoisLookupUrl) {
   const registrantEntity = getEntityByRole(payload.entities, 'registrant')
   const checkedAt = new Date().toISOString()
   const registrar = getEntityName(registrarEntity) || firstNonEmpty(payload.port43, payload.ldhName)
-  const registrant = getEntityName(registrantEntity)
+  const registrant = getEntityName(registrantEntity) || 'Titular não informado no RDAP'
   const registrationAvailability = 'registered'
   const registrationDetails = formatRegistrationDetails(payload, {
     registrar,
