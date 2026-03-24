@@ -437,7 +437,7 @@ async function lookupRegistration(domain: { hostname: string }) {
     }
   }
 
-  if (hadNotFoundResponse && !hadLookupFailure) {
+  if (hadNotFoundResponse) {
     return buildNotFoundResult(whoisLookupUrl)
   }
 
