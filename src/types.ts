@@ -1,6 +1,6 @@
 export type Theme = 'dark' | 'light'
 
-export type AuthMode = 'login' | 'register' | 'forgot'
+export type AuthMode = 'login' | 'register' | 'forgot' | 'reset'
 
 export type AuthForm = {
   name: string

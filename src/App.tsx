@@ -167,6 +167,15 @@ export default function App() {
       if (mode === 'forgot') {
         const data = await request('/auth/forgot-password', { method: 'POST', body: { email: authForm.email } })
         setSuccess(data.message)
+        setAuthForm({ ...emptyAuth, email: authForm.email })
+        setMode('reset')
+      }
+
+      if (mode === 'reset') {
+        const data = await request('/auth/reset-password', { method: 'POST', body: { token: authForm.name, password: authForm.password } })
+        setSuccess(data.message)
+        setAuthForm(emptyAuth)
+        setMode('login')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro de autenticação.')
@@ -177,20 +186,10 @@ export default function App() {
 
   async function handleResetPassword() {
     const resetTokenFromUrl = new URLSearchParams(globalThis.location.search).get('resetToken') || ''
-    const tokenInput = globalThis.prompt('Cole o token de recuperação', resetTokenFromUrl)
-    const password = globalThis.prompt('Digite a nova senha')
-    if (!tokenInput || !password) return
-
-    try {
-      setLoading(true)
-      const data = await request('/auth/reset-password', { method: 'POST', body: { token: tokenInput, password } })
-      setSuccess(data.message)
-      setMode('login')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.')
-    } finally {
-      setLoading(false)
-    }
+    setMode('reset')
+    setError('')
+    setSuccess('')
+    setAuthForm((current) => ({ ...current, name: resetTokenFromUrl }))
   }
 
   async function handleAddDomain(form: DomainForm, onDone: () => void) {
